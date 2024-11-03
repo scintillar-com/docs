@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Roadmaps/Roadmap 2024 Q4.md",
+                "file": "Legal Documents/NDA.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Roadmap 2024 Q4"
+              "title": "NDA"
             }
           }
         ],
@@ -190,11 +190,13 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "e560886c80e60943",
+  "active": "2ba08e9742b4ccd6",
   "lastOpenFiles": [
+    "Roadmaps/Roadmap 2024 Q4.md",
+    "Legal Documents/NDA.md",
+    "Legal Documents",
     "Roadmaps",
     "Welcome.md",
-    "Roadmaps/Roadmap 2024 Q4.md",
     "README.md",
     "Welcome - Copie.md",
     "docs"

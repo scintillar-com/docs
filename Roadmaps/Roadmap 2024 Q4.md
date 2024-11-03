@@ -1,1 +1,3 @@
-- Study 
+- Research current offering and community needs
+- Establish online presence
+- Setup base tools
