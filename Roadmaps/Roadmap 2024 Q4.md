@@ -1,0 +1,1 @@
+- Dockerized users management service and auth
