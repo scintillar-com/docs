@@ -12,6 +12,7 @@ export type {
   GithubConfig,
   ShellPaths,
   CustomAdapterSpec,
+  VersionsConfig,
 } from "./define-config.js"
 export type { ResolvedShellConfig } from "./config-loader.js"
 export type { AdapterOverrides } from "./adapter/custom.js"
