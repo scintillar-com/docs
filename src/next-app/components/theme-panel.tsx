@@ -23,6 +23,7 @@ import {
   cssColorToHex,
   formatTint,
   isThemeOverridesRequest,
+  keepThemeOverrides,
   normalizeHex,
   parseStoredOverrides,
   postOverrides,
@@ -85,6 +86,15 @@ export function ThemePanel({ config }: { config: ResolvedThemePanelConfig }) {
     // Storage events already reach same-origin iframes; posting as well
     // covers browsers where storage is blocked.
     postOverridesToPreviewFrames(next)
+  }, [])
+
+  // The inline init script applied the saved overrides before paint, but a
+  // client re-render of the root layout can reset <html>'s attributes;
+  // re-apply once mounted and whenever that happens.
+  useEffect(() => {
+    const root = document.documentElement
+    applyThemeOverrides(root, overridesRef.current)
+    return keepThemeOverrides(root, () => overridesRef.current)
   }, [])
 
   // Answer preview iframes asking for the current overrides on boot, and
@@ -285,9 +295,10 @@ export function ThemePanel({ config }: { config: ResolvedThemePanelConfig }) {
             {t("themePanel.tint")}
           </label>
           <div className="flex items-center gap-1">
-            <output htmlFor={ids.tint} className="font-mono text-xs tabular-nums">
+            {/* Visual readout only; the slider exposes its value to assistive tech. */}
+            <span aria-hidden className="font-mono text-xs tabular-nums">
               {formatTint(effectiveTint)}
-            </output>
+            </span>
             <Button
               type="button"
               variant="ghost"

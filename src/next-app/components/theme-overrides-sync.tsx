@@ -7,9 +7,11 @@ import {
   THEME_OVERRIDES_STORAGE_KEY,
   applyThemeOverrides,
   isThemeOverridesMessage,
+  keepThemeOverrides,
   parseStoredOverrides,
   readStoredOverrides,
   sanitizeOverrides,
+  type ThemeOverrides,
 } from "@shell/lib/theme-overrides"
 
 /**
@@ -22,18 +24,21 @@ import {
 export function ThemeOverridesSync({ controls }: { controls: readonly ThemePanelControl[] }) {
   useEffect(() => {
     const root = document.documentElement
-    applyThemeOverrides(root, readStoredOverrides(controls))
+    let current: ThemeOverrides = readStoredOverrides(controls)
+    const apply = (next: ThemeOverrides) => {
+      current = next
+      applyThemeOverrides(root, next)
+    }
+    apply(current)
+    const stopKeeping = keepThemeOverrides(root, () => current)
 
     function onStorage(e: StorageEvent) {
-      if (e.key === THEME_OVERRIDES_STORAGE_KEY) {
-        applyThemeOverrides(root, parseStoredOverrides(e.newValue, controls))
-      } else if (e.key === null) {
-        applyThemeOverrides(root, readStoredOverrides(controls))
-      }
+      if (e.key === THEME_OVERRIDES_STORAGE_KEY) apply(parseStoredOverrides(e.newValue, controls))
+      else if (e.key === null) apply(readStoredOverrides(controls))
     }
     function onMessage(e: MessageEvent) {
       if (e.origin !== window.location.origin || !isThemeOverridesMessage(e.data)) return
-      applyThemeOverrides(root, sanitizeOverrides(e.data.overrides, controls))
+      apply(sanitizeOverrides(e.data.overrides, controls))
     }
 
     window.addEventListener("storage", onStorage)
@@ -46,6 +51,7 @@ export function ThemeOverridesSync({ controls }: { controls: readonly ThemePanel
       }
     }
     return () => {
+      stopKeeping()
       window.removeEventListener("storage", onStorage)
       window.removeEventListener("message", onMessage)
     }

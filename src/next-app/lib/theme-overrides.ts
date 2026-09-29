@@ -135,6 +135,26 @@ export function applyThemeOverrides(root: StyleTarget, o: ThemeOverrides): void 
 }
 
 /**
+ * Re-apply the overrides whenever something else rewrites `<html>`'s style
+ * attribute. React resets a root singleton's attributes when it (re)mounts the
+ * root layout client-side (seen in `next dev` after streaming), which would
+ * otherwise drop the values set by the init script. Returns a disconnect
+ * function. `current` is read on each mutation so callers can pass a ref.
+ */
+export function keepThemeOverrides(root: HTMLElement, current: () => ThemeOverrides): () => void {
+  if (typeof MutationObserver === "undefined") return () => {}
+  const observer = new MutationObserver(() => {
+    const o = current()
+    const primaryOk = (root.style.getPropertyValue(PRIMARY_VAR) || undefined) === o.primary
+    const tintValue = root.style.getPropertyValue(TINT_VAR)
+    const tintOk = o.tint === undefined ? tintValue === "" : tintValue === formatTint(o.tint)
+    if (!primaryOk || !tintOk) applyThemeOverrides(root, o)
+  })
+  observer.observe(root, { attributes: true, attributeFilter: ["style"] })
+  return () => observer.disconnect()
+}
+
+/**
  * The CSS the "Copy CSS" action puts on the clipboard: the resulting
  * `:root` variables (overrides, or the theme's own values where nothing was
  * overridden). A variable without a known value is left out.
