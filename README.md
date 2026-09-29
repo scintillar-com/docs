@@ -43,6 +43,8 @@ export default defineConfig({
   //   globalCss:    "./styles/theme.css",  // optional, see "Custom CSS"
   //   buildOutput:  ".next",                // optional, override if `.next` collides
   // },
+
+  // themePanel: { since: "1.0.0" },   // optional, see "Theme panel"
 })
 ```
 
@@ -106,6 +108,63 @@ The file is `@import`ed at the very end of the shell's `globals.css`, so
 your `:root` token redefinitions win the cascade against the shell's
 defaults. Edits require a CLI restart to pick up (the CSS path is resolved
 at boot); the file's contents are hot-reloaded as usual.
+
+## Theme panel
+
+Off by default. Set `themePanel` to turn the header's sun/moon button into a
+small theme panel, so visitors can try your theme with their own brand color
+before installing it:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  themePanel: {
+    since: "1.0.0",                        // optional, see below
+    controls: ["mode", "primary", "tint"], // optional, this is the default
+  },
+})
+```
+
+The panel has:
+
+- **Mode**: light, dark or system (the same setting the plain toggle changes).
+- **Primary color**: a color swatch and a hex input. Sets `--primary`.
+- **Surface tint**: a slider from 0 to 2 (step 0.05) with a reset. Sets
+  `--surface-tint`.
+- **Copy CSS**: copies the resulting variables, ready to paste into your
+  app's theme file:
+
+  ```css
+  :root {
+    --primary: #3b82f6;
+    --surface-tint: 1.25;
+  }
+  ```
+
+  Values you didn't change are copied as the theme defines them. If the
+  clipboard is unavailable, the CSS is shown in a text box to copy by hand.
+
+The panel writes `--primary` and `--surface-tint` as inline custom
+properties on `<html>`, so they win over `:root` and `.dark` and apply in
+both modes. It's meant for themes that derive their surfaces from those two
+variables (for example with CSS relative colors); with a theme that ignores
+`--surface-tint`, only the primary color changes.
+
+Changes apply live to the docs and to the component preview iframes, and
+are saved in the visitor's browser (localStorage, key
+`registry-shell:theme-overrides`); a reload applies them before first
+paint. Previews follow through shared storage events and, where storage is
+blocked, same-origin `postMessage`. "Reset all" goes back to your theme.
+
+`controls` picks which sections appear, in order. Unknown entries are
+ignored; an empty list means all three.
+
+`since` is for versioned docs: versions older than `since` keep the plain
+toggle (their theme predates the variables the panel sets). On an
+unversioned site, `since` has no effect and the panel is always on.
+Versioned builds tell the shell which version they render through
+`NEXT_PUBLIC_SHELL_DOCS_VERSION` (see `isThemePanelEnabled` in
+`src/next-app/lib/theme-panel.ts`).
 
 ## Advanced: custom adapters
 
