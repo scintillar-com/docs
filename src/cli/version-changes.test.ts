@@ -68,10 +68,12 @@ describe("readRegistryItems", () => {
 
 describe("buildChangeIndexes / writeChangeIndexes", () => {
   it("records every version (absent = null) and stores each content once", () => {
+    const items = (entries: Array<[string, Record<string, string>]>) =>
+      new Map<string, Record<string, string>>(entries)
     const [button, card] = buildChangeIndexes([
-      { version: "1.0.0", items: new Map([["button", { "b.tsx": "v1" }]]) },
-      { version: "1.1.0", items: new Map([["button", { "b.tsx": "v1" }], ["card", { "c.tsx": "c" }]]) },
-      { version: "", items: new Map([["button", { "b.tsx": "v2" }], ["card", { "c.tsx": "c" }]]) },
+      { version: "1.0.0", items: items([["button", { "b.tsx": "v1" }]]) },
+      { version: "1.1.0", items: items([["button", { "b.tsx": "v1" }], ["card", { "c.tsx": "c" }]]) },
+      { version: "", items: items([["button", { "b.tsx": "v2" }], ["card", { "c.tsx": "c" }]]) },
     ])
     expect(button.name).toBe("button")
     expect(button.versions).toEqual([
