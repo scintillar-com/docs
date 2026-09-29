@@ -187,6 +187,7 @@ export default defineConfig({
     // cacheDir: "node_modules/.cache/registry-shell/versions",
     // registryBuildCommand: "npx shadcn build",
     // installCommand: <detected from the lockfile>,
+    // changelog: "CHANGELOG.md",                            // Releases page source
   },
 })
 ```
@@ -200,6 +201,8 @@ export default defineConfig({
 | `/v/<version>/`         | Frozen site of each matching tag                      |
 | `/r/v<version>/<name>.json` | Frozen registry JSON of each matching tag         |
 | `/versions.json`        | Manifest: `{ latest, versions: [{ version, tag, commit, date, isLatest, path, registry }] }` |
+| `/changes/<name>.json`  | Change history of each registry item, read by the "Changes" tab |
+| `/releases/`            | Releases page, when the changelog exists (also `/v/<version>/releases/`) |
 
 So `npx shadcn add https://ui.example.com/r/v1.0.0/button.json` keeps
 installing exactly what shipped in 1.0.0, and each snapshot's install tab
@@ -232,7 +235,39 @@ shallow and tagless (e.g. GitHub Actions' `actions/checkout` needs
 `fetch-depth: 0`; elsewhere run `git fetch --tags --unshallow` first). The
 build logs a hint when a shallow clone has no matching tag.
 
-Without `versions`, the build output is exactly the single latest site.
+**Releases page.** When `changelog` (default `CHANGELOG.md`, relative to
+the config; `""` turns it off) exists, `/releases` renders it, linked from
+the Documentation sidebar. The expected format is the one
+[changesets](https://github.com/changesets/changesets) writes: one
+`## <version>` section per release (newest first) with `### Major Changes`
+/ `### Minor Changes` / `### Patch Changes` lists. Any `## ` heading
+containing a semver works (`## v1.2.0`, `## [1.2.0] - 2026-09-29`);
+entries are rendered as plain Markdown (GFM), not MDX. Each section is
+tagged with its kinds of change, marks the newest release, and links to
+that version's docs when a snapshot of it is published (both read from
+`/versions.json` at runtime). Each snapshot renders the changelog as it
+was at its tag; tags without the file get no Releases page.
+
+**Changes tab.** Component pages get a "Changes" tab with a unified diff of
+the item's registry files between two versions, defaulting to the
+previous version → the one being viewed (on the latest site, the newest
+release → the working tree). Readers can pick any two versions. When
+nothing changed it says "Unchanged since v1.0.0"; when the item didn't
+exist in the older version, "Added in v1.1.0". The diff covers every file
+of the registry item plus its metadata (dependencies,
+`registryDependencies`, file targets, `cssVars`...), so a dependency bump
+shows up too.
+
+The history is computed at build time from each version's registry JSON
+(the files published under `/r/v<version>/`, plus the working tree's for
+latest) and written to `/changes/<name>.json` at the site root: every
+version's file hashes plus each distinct file content once, so one fetch
+lets the browser diff any pair of versions. Like `/versions.json`, it is
+regenerated on every deploy, so cached snapshots of older versions know
+about later releases.
+
+Without `versions`, the build output is exactly the single latest site:
+no Releases page, no Changes tab, no `/changes/`.
 
 ## Releasing
 
