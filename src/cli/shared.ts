@@ -289,6 +289,12 @@ export function buildEnvVars(loaded: LoadedConfig | null): Record<string, string
     env.USER_TRANSPILE_PACKAGES = config.transpilePackages.join(",")
   }
 
+  // Theme panel: forwarded as raw JSON; the client normalises it (defaults,
+  // unknown controls) in lib/theme-panel.ts. Absent = plain theme toggle.
+  if (config.themePanel) {
+    env.NEXT_PUBLIC_SHELL_THEME_PANEL = JSON.stringify(config.themePanel)
+  }
+
   // Multilocale signalling for the locale toggle. Resolves the toggle's
   // locale set from explicit config or auto-scan of doc subfolders so the
   // client has a complete list at build time.

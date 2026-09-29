@@ -109,6 +109,35 @@ export interface ShellPaths {
  */
 export type CustomAdapterSpec = string
 
+/** A control the theme panel can show. See `ThemePanelConfig.controls`. */
+export type ThemePanelControl = "mode" | "primary" | "tint"
+
+/**
+ * Opt-in theme panel. When set, the header's sun/moon button opens a
+ * popover where visitors can switch light / dark / system, pick a primary
+ * color and adjust the surface tint. Changes apply live to the docs and to
+ * the component preview iframes, are saved per browser, and can be copied
+ * as CSS.
+ *
+ * The panel writes two custom properties on `<html>`: `--primary` (a hex
+ * color) and `--surface-tint` (a number from 0 to 2). It's meant for themes
+ * that derive their surfaces from those two variables.
+ */
+export interface ThemePanelConfig {
+  /**
+   * Optional. First docs version (semver, e.g. `"1.0.0"`; a leading `v` is
+   * fine) whose theme supports the panel. Versions below it keep the plain
+   * sun/moon toggle. Only takes effect on versioned builds; an unversioned
+   * site always shows the panel.
+   */
+  since?: string
+  /**
+   * Optional. Which controls to show, in this order. Default: all three
+   * (`["mode", "primary", "tint"]`).
+   */
+  controls?: ThemePanelControl[]
+}
+
 export interface ShellConfig {
   /**
    * Required. Displayed in shell chrome.
@@ -208,6 +237,15 @@ export interface ShellConfig {
    * empty string to hide the install line entirely.
    */
   installCommandTemplate?: string
+
+  /**
+   * Optional. Turns the header's theme button into a theme panel (mode,
+   * primary color, surface tint, "Copy CSS"). Omit to keep the plain
+   * light/dark toggle (default). See `ThemePanelConfig`.
+   *
+   * Example: `themePanel: { since: "1.0.0" }`.
+   */
+  themePanel?: ThemePanelConfig
 }
 
 /**
