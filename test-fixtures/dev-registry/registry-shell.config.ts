@@ -38,5 +38,10 @@ export default defineConfig({
   defaultLocale: "en",
   locales: ["en", "fr"],
 
+  // Exercises the header theme panel (mode, primary color, surface tint,
+  // Copy CSS) and its sync into preview iframes. Remove to get the plain
+  // sun/moon toggle back.
+  themePanel: {},
+
   port: 3100,
 })
