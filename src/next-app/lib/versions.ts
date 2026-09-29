@@ -11,6 +11,9 @@ import { useEffect, useState } from "react"
 /** True when the site was built with `versions` enabled. */
 export const VERSIONS_ENABLED = process.env.NEXT_PUBLIC_SHELL_VERSIONS === "1"
 
+/** True when this build renders a changelog at `/releases` (versioned builds only). */
+export const RELEASES_ENABLED = process.env.NEXT_PUBLIC_SHELL_RELEASES === "1"
+
 /** Version of this frozen snapshot (e.g. `"0.1.0"`), or `""` on the latest site. */
 export const CURRENT_VERSION = process.env.NEXT_PUBLIC_SHELL_VERSION ?? ""
 
