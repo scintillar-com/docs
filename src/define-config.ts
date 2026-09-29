@@ -140,6 +140,15 @@ export interface VersionsConfig {
    * `""` to skip.
    */
   installCommand?: string
+  /**
+   * Changelog rendered by the Releases page (`/releases`), relative to the
+   * config file. Changesets format: one `## <version>` section per release
+   * with `### Major|Minor|Patch Changes` lists. Each version's snapshot
+   * reads the file as it was at that tag. When the file doesn't exist the
+   * page and its nav link are left out. Default: `"CHANGELOG.md"`; `""`
+   * disables the page.
+   */
+  changelog?: string
 }
 
 /**

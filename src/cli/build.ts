@@ -149,6 +149,7 @@ export const buildSite: BuildSite = async (loaded, options) => {
       }
       fs.mkdirSync(path.dirname(outDir), { recursive: true })
       fs.cpSync(src, outDir, { recursive: true })
+      if (!envOptions.changelog) removeReleasesPage(outDir)
       // Remove the build output from inside node_modules so it doesn't
       // accumulate stale copies across releases.
       fs.rmSync(src, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
@@ -158,6 +159,18 @@ export const buildSite: BuildSite = async (loaded, options) => {
     // Step 6: Restore shell's public/ (remove overlay) and process.env.
     restoreDir(shellPublic, pristine)
     restoreEnv()
+  }
+}
+
+/**
+ * The `/releases` route always exists in the Next app but only means
+ * something on versioned builds with a changelog; elsewhere it prerenders
+ * as a 404. Drop that output so such builds publish exactly the pages they
+ * did before the route existed.
+ */
+export function removeReleasesPage(outDir: string): void {
+  for (const entry of ["releases", "releases.html", "releases.txt"]) {
+    fs.rmSync(path.join(outDir, entry), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
   }
 }
 

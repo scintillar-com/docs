@@ -13,9 +13,11 @@ import path from "node:path"
 import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { buildRegistry, type BuildSite, type BuildSiteOptions } from "./build.js"
+import { buildRegistry, removeReleasesPage, type BuildSite, type BuildSiteOptions } from "./build.js"
 import { buildEnvVars, loadUserConfigFile, type LoadedConfig } from "./shared.js"
-import { resolveInstallCommand, runVersionedBuild } from "./versioned-build.js"
+import { changelogOption, resolveInstallCommand, runVersionedBuild } from "./versioned-build.js"
+import type { ChangeIndex } from "./version-changes.js"
+import { compareItem, defaultRange } from "../next-app/lib/changes"
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const FIXTURE = path.resolve(HERE, "../../test-fixtures/versioned-registry")
@@ -58,7 +60,8 @@ function writeHello(repo: string, text: string): void {
  * History:
  *   v0.0.1  README only (predates the shell: no config → skipped)
  *   v0.1.0  fixture registry, hello says "Hello v0.1"
- *   v0.2.0  hello says "Hello v0.2", adds docs/extra.mdx
+ *   v0.2.0  hello says "Hello v0.2", adds docs/extra.mdx, the `badge`
+ *           item and CHANGELOG.md
  *   (HEAD)  unreleased: hello says "Hello next"
  */
 function makeRepo(): string {
@@ -79,6 +82,18 @@ function makeRepo(): string {
 
   writeHello(repo, "Hello v0.2")
   fs.writeFileSync(path.join(repo, "content/docs/extra.mdx"), "---\ntitle: Extra\n---\n\nNew in 0.2.\n")
+  fs.writeFileSync(path.join(repo, "components/ui/badge.tsx"), "export const Badge = () => null\n")
+  const registry = readJson<{ items: unknown[] }>(path.join(repo, "registry.json"))
+  registry.items.push({
+    name: "badge",
+    type: "registry:component",
+    files: [{ path: "components/ui/badge.tsx", type: "registry:component" }],
+  })
+  fs.writeFileSync(path.join(repo, "registry.json"), JSON.stringify(registry, null, 2) + "\n")
+  fs.writeFileSync(
+    path.join(repo, "CHANGELOG.md"),
+    "# versioned-fixture\n\n## 0.2.0\n\n### Minor Changes\n\n- abc1234: Add Badge.\n\n## 0.1.0\n\n### Major Changes\n\n- Initial release.\n",
+  )
   git(repo, "add", "-A")
   git(repo, "commit", "-q", "-m", "0.2.0")
   // Annotated, to exercise peeling to the commit.
@@ -129,7 +144,9 @@ function load(repo: string): LoadedConfig {
   return loadUserConfigFile(path.join(repo, CONFIG))
 }
 
-describe("versioned build (fixture registry with two release tags)", () => {
+// Real git worktrees + installs per tag: several seconds each on Windows,
+// more when the whole suite runs in parallel.
+describe("versioned build (fixture registry with two release tags)", { timeout: 60_000 }, () => {
   it("publishes latest at / and a frozen snapshot per tag", async () => {
     const repo = makeRepo()
     const calls: FakeBuild[] = []
@@ -167,6 +184,44 @@ describe("versioned build (fixture registry with two release tags)", () => {
       const item = readJson<{ files: { content: string }[] }>(path.join(out, "r", `v${version}`, "hello.json"))
       expect(item.files[0].content).toContain(text)
     }
+
+    // Releases page: only where the changelog exists (0.2.0 and later).
+    expect(latest.env.SHELL_CHANGELOG_PATH).toBe(path.join(repo, "CHANGELOG.md"))
+    expect(latest.env.NEXT_PUBLIC_SHELL_RELEASES).toBe("1")
+    const v010 = readJson<{ env: Record<string, string> }>(path.join(out, "v/0.1.0/index.json"))
+    const v020 = readJson<{ env: Record<string, string> }>(path.join(out, "v/0.2.0/index.json"))
+    expect(v010.env.NEXT_PUBLIC_SHELL_RELEASES).toBeUndefined()
+    expect(v010.env.SHELL_CHANGELOG_PATH).toBeUndefined()
+    expect(v020.env.NEXT_PUBLIC_SHELL_RELEASES).toBe("1")
+    expect(path.basename(v020.env.SHELL_CHANGELOG_PATH)).toBe("CHANGELOG.md")
+
+    // Change history: one index per item at the site root, oldest first,
+    // the latest site ("") last.
+    const hello = readJson<ChangeIndex>(path.join(out, "changes/hello.json"))
+    expect(hello.versions.map((v) => v.version)).toEqual(["0.1.0", "0.2.0", ""])
+    const helloFile = (version: string) =>
+      hello.blobs[hello.versions.find((v) => v.version === version)!.files!["components/ui/hello.tsx"]]
+    expect(helloFile("0.1.0")).toContain("Hello v0.1")
+    expect(helloFile("0.2.0")).toContain("Hello v0.2")
+    expect(helloFile("")).toContain("Hello next")
+    const helloDiff = compareItem(hello, "0.1.0", "0.2.0")
+    expect(helloDiff.status).toBe("changed")
+    expect(helloDiff.files.map((f) => [f.path, f.additions, f.deletions])).toEqual([
+      ["components/ui/hello.tsx", 1, 1],
+    ])
+
+    const badge = readJson<ChangeIndex>(path.join(out, "changes/badge.json"))
+    expect(badge.versions.map((v) => v.files === null)).toEqual([true, false, false])
+    // Viewing 0.2.0: new in that release. Viewing latest: unchanged since.
+    expect(compareItem(badge, "0.1.0", "0.2.0")).toMatchObject({ status: "added", addedIn: "0.2.0" })
+    const latestRange = defaultRange(badge, "")!
+    expect(latestRange).toEqual({ from: "0.2.0", to: "" })
+    expect(compareItem(badge, latestRange.from, latestRange.to)).toMatchObject({
+      status: "unchanged",
+      since: "0.2.0",
+    })
+    // Identical content is stored once.
+    expect(Object.keys(badge.blobs)).toHaveLength(2)
 
     // v0.0.1 has no shell config and `not-a-release` no version: neither is published.
     expect(fs.existsSync(path.join(out, "v/0.0.1"))).toBe(false)
@@ -267,6 +322,10 @@ describe("versions absent (default)", () => {
     expect(seenOptions).toEqual({ args: ["--debug"], outDir: path.join(repo, "out") })
     expect(fs.existsSync(path.join(repo, "out/versions.json"))).toBe(false)
     expect(fs.existsSync(path.join(repo, "out/v"))).toBe(false)
+    // No change history and no changelog handed to the build, even though
+    // the repo has a CHANGELOG.md.
+    expect(fs.existsSync(path.join(repo, "out/changes"))).toBe(false)
+    expect(fs.existsSync(path.join(repo, "CHANGELOG.md"))).toBe(true)
     // No worktree was created, no cache written.
     expect(git(repo, "worktree", "list").split("\n")).toHaveLength(1)
     expect(fs.existsSync(path.join(repo, "node_modules"))).toBe(false)
@@ -275,7 +334,7 @@ describe("versions absent (default)", () => {
   it("adds no env vars beyond today's set", () => {
     const repo = makeRepo()
     const env = buildEnvVars(load(repo))
-    expect(Object.keys(env).filter((k) => /VERSION|BASE_PATH/.test(k))).toEqual([])
+    expect(Object.keys(env).filter((k) => /VERSION|BASE_PATH|CHANGELOG|RELEASES/.test(k))).toEqual([])
     expect(buildEnvVars(load(repo), {})).toEqual(env)
   })
 
@@ -295,6 +354,35 @@ describe("versions absent (default)", () => {
       if (previous === undefined) delete process.env.NEXT_PUBLIC_SHELL_BASE_PATH
       else process.env.NEXT_PUBLIC_SHELL_BASE_PATH = previous
     }
+  })
+})
+
+describe("releases page", () => {
+  it("resolves the changelog only when the file exists, \"\" disabling it", () => {
+    fs.writeFileSync(path.join(tmp, "CHANGELOG.md"), "# x\n")
+    fs.mkdirSync(path.join(tmp, "docs"))
+    fs.writeFileSync(path.join(tmp, "docs/HISTORY.md"), "# x\n")
+    expect(changelogOption(tmp, undefined)).toEqual({ changelog: path.join(tmp, "CHANGELOG.md") })
+    expect(changelogOption(tmp, "docs/HISTORY.md")).toEqual({ changelog: path.join(tmp, "docs/HISTORY.md") })
+    expect(changelogOption(tmp, "missing.md")).toEqual({})
+    expect(changelogOption(tmp, "docs")).toEqual({})
+    expect(changelogOption(tmp, "")).toEqual({})
+  })
+
+  it("forwards the changelog to the Next app only when given", () => {
+    const env = buildEnvVars(null, { changelog: "/x/CHANGELOG.md" })
+    expect(env.SHELL_CHANGELOG_PATH).toBe("/x/CHANGELOG.md")
+    expect(env.NEXT_PUBLIC_SHELL_RELEASES).toBe("1")
+    expect(buildEnvVars(null, { versions: true }).NEXT_PUBLIC_SHELL_RELEASES).toBeUndefined()
+  })
+
+  it("drops the prerendered 404 of /releases from builds without a changelog", () => {
+    fs.mkdirSync(path.join(tmp, "releases"))
+    fs.writeFileSync(path.join(tmp, "releases/index.html"), "404")
+    fs.writeFileSync(path.join(tmp, "releases.txt"), "rsc")
+    fs.writeFileSync(path.join(tmp, "index.html"), "home")
+    removeReleasesPage(tmp)
+    expect(fs.readdirSync(tmp)).toEqual(["index.html"])
   })
 })
 

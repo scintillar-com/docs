@@ -270,6 +270,12 @@ export interface BuildEnvOptions {
   version?: string
   /** Turns on the header version switcher and banner. */
   versions?: boolean
+  /**
+   * Absolute path of an existing changelog to render at `/releases`
+   * (versioned builds only). Forwarded as SHELL_CHANGELOG_PATH, plus
+   * NEXT_PUBLIC_SHELL_RELEASES for the nav link.
+   */
+  changelog?: string
 }
 
 export function buildEnvVars(
@@ -282,6 +288,10 @@ export function buildEnvVars(
   if (options.versions) base.NEXT_PUBLIC_SHELL_VERSIONS = "1"
   if (options.version) base.NEXT_PUBLIC_SHELL_VERSION = options.version
   if (options.basePath) base.NEXT_PUBLIC_SHELL_BASE_PATH = options.basePath
+  if (options.changelog) {
+    base.SHELL_CHANGELOG_PATH = options.changelog
+    base.NEXT_PUBLIC_SHELL_RELEASES = "1"
+  }
   if (!loaded) return base
 
   const { configPath, root, config } = loaded
