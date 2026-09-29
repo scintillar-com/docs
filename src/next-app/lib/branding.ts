@@ -4,6 +4,7 @@
  * when no config is wired, so client code never crashes.
  */
 import type { BrandingConfig, GithubConfig } from "@shell/lib/registry-adapter"
+import { withBasePath } from "@shell/lib/base-path"
 
 const DEFAULT_BRANDING = {
   siteName: "UI Registry",
@@ -46,7 +47,9 @@ export const branding: Required<Omit<BrandingConfig, "github">> & {
   twitterHandle: pick("TWITTER_HANDLE", DEFAULT_BRANDING.twitterHandle),
   github,
   logoAlt: pick("LOGO_ALT", DEFAULT_BRANDING.logoAlt),
-  faviconDark: pick("FAVICON_DARK", DEFAULT_BRANDING.faviconDark),
-  faviconLight: pick("FAVICON_LIGHT", DEFAULT_BRANDING.faviconLight),
-  faviconIco: pick("FAVICON_ICO", DEFAULT_BRANDING.faviconIco),
+  // Favicons are raw public/ URLs (metadata icons, next/image src), which
+  // Next does not prefix with basePath: do it here for versioned snapshots.
+  faviconDark: withBasePath(pick("FAVICON_DARK", DEFAULT_BRANDING.faviconDark)),
+  faviconLight: withBasePath(pick("FAVICON_LIGHT", DEFAULT_BRANDING.faviconLight)),
+  faviconIco: withBasePath(pick("FAVICON_ICO", DEFAULT_BRANDING.faviconIco)),
 }

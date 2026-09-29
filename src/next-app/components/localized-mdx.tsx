@@ -27,6 +27,18 @@ import { compileMDX } from "next-mdx-remote/rsc"
 import remarkGfm from "remark-gfm"
 import { mdxHeadings } from "@shell/components/heading-anchor"
 import { LocalizedMdxClient } from "@shell/components/localized-mdx-client"
+import { BASE_PATH, withBasePath } from "@shell/lib/base-path"
+
+// MDX links render as plain <a>, which Next does not prefix with basePath.
+// Only swapped in for versioned snapshots, so regular builds are unchanged.
+const mdxComponents = BASE_PATH
+  ? {
+      ...mdxHeadings,
+      a: (props: React.ComponentProps<"a">) => (
+        <a {...props} href={props.href ? withBasePath(props.href) : props.href} />
+      ),
+    }
+  : mdxHeadings
 
 const mdxOptions = {
   mdxOptions: { remarkPlugins: [remarkGfm] },
@@ -42,7 +54,7 @@ export async function LocalizedMdx({
       const { content } = await compileMDX({
         source,
         options: mdxOptions,
-        components: mdxHeadings,
+        components: mdxComponents,
       })
       return [loc, content] as const
     }),

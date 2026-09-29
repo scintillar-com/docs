@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@shell/components/shell-ui/dialog"
 import { useTranslations } from "@shell/lib/i18n"
+import { withBasePath } from "@shell/lib/base-path"
 
 export interface SearchItem {
   label: string
@@ -24,7 +25,7 @@ let fetchPromise: Promise<void> | null = null
 
 function preloadSearchIndex() {
   if (cachedItems || fetchPromise) return
-  fetchPromise = fetch("/api/search-index.json")
+  fetchPromise = fetch(withBasePath("/api/search-index.json"))
     .then((r) => r.json())
     .then((data) => { cachedItems = data })
     .catch(() => {})
