@@ -277,6 +277,25 @@ const translations = {
     "settings.dark": "Dark",
     "settings.system": "System",
     "settings.language": "Language",
+
+    // Theme panel (opt-in via `themePanel` in the registry config)
+    "themePanel.trigger": "Theme settings",
+    "themePanel.title": "Theme",
+    "themePanel.description": "Changes apply to this site and its previews, and are saved in this browser.",
+    "themePanel.mode": "Mode",
+    "themePanel.primary": "Primary color",
+    "themePanel.primarySwatch": "Pick the primary color",
+    "themePanel.primaryHex": "Primary color (hex)",
+    "themePanel.primaryInvalid": "Enter a hex color such as #3b82f6.",
+    "themePanel.resetPrimary": "Reset primary color",
+    "themePanel.tint": "Surface tint",
+    "themePanel.resetTint": "Reset surface tint",
+    "themePanel.reset": "Reset",
+    "themePanel.resetAll": "Reset all",
+    "themePanel.copyCss": "Copy CSS",
+    "themePanel.copied": "CSS copied to the clipboard.",
+    "themePanel.copyFailed": "Couldn't copy. Select the CSS below and copy it yourself.",
+    "themePanel.cssLabel": "Theme CSS",
   },
   fr: {
     // Header
@@ -535,6 +554,25 @@ const translations = {
     "settings.dark": "Sombre",
     "settings.system": "Système",
     "settings.language": "Langue",
+
+    // Theme panel (opt-in via `themePanel` in the registry config)
+    "themePanel.trigger": "Réglages du thème",
+    "themePanel.title": "Thème",
+    "themePanel.description": "Les changements s'appliquent à ce site et à ses aperçus, et sont enregistrés dans ce navigateur.",
+    "themePanel.mode": "Mode",
+    "themePanel.primary": "Couleur primaire",
+    "themePanel.primarySwatch": "Choisir la couleur primaire",
+    "themePanel.primaryHex": "Couleur primaire (hexadécimal)",
+    "themePanel.primaryInvalid": "Saisissez une couleur hexadécimale, par exemple #3b82f6.",
+    "themePanel.resetPrimary": "Réinitialiser la couleur primaire",
+    "themePanel.tint": "Teinte des surfaces",
+    "themePanel.resetTint": "Réinitialiser la teinte des surfaces",
+    "themePanel.reset": "Réinitialiser",
+    "themePanel.resetAll": "Tout réinitialiser",
+    "themePanel.copyCss": "Copier le CSS",
+    "themePanel.copied": "CSS copié dans le presse-papiers.",
+    "themePanel.copyFailed": "Copie impossible. Sélectionnez le CSS ci-dessous et copiez-le vous-même.",
+    "themePanel.cssLabel": "CSS du thème",
   },
 } as const
 
