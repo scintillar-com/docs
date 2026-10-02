@@ -172,6 +172,68 @@ serves the same bytes consumers' `npx shadcn add` commands expect.
 > is no runtime SSR / no API routes — registries that need those
 > patterns aren't served by this shell.
 
+## Versioned docs and registry
+
+Opt in with `versions` to publish a frozen, browsable copy of every release
+next to the latest site:
+
+```ts
+// registry-shell.config.ts
+export default defineConfig({
+  branding: { ... },
+  versions: {
+    // All optional — these are the defaults:
+    // tags: "v*",                                           // git tag glob
+    // cacheDir: "node_modules/.cache/registry-shell/versions",
+    // registryBuildCommand: "npx shadcn build",
+    // installCommand: <detected from the lockfile>,
+  },
+})
+```
+
+`registry-shell build` then produces:
+
+| URL                     | Content                                               |
+|-------------------------|-------------------------------------------------------|
+| `/`                     | Latest site, built from the working tree (as before)  |
+| `/r/<name>.json`        | Latest registry JSON                                  |
+| `/v/<version>/`         | Frozen site of each matching tag                      |
+| `/r/v<version>/<name>.json` | Frozen registry JSON of each matching tag         |
+| `/versions.json`        | Manifest: `{ latest, versions: [{ version, tag, commit, date, isLatest, path, registry }] }` |
+
+So `npx shadcn add https://ui.example.com/r/v1.0.0/button.json` keeps
+installing exactly what shipped in 1.0.0, and each snapshot's install tab
+points at its own `/r/v<version>/` URLs.
+
+The header gets a version switcher (it keeps the current page when it
+exists in the target version, otherwise opens that version's home), and
+every version other than the newest release shows a banner linking back to
+the latest site. Both read `/versions.json` at runtime, so an older
+snapshot always knows about newer releases.
+
+**How snapshots are built.** The version is the trailing semver of the tag
+name (`v1.2.0`, `my-ui@1.2.0`); tags without one are ignored, and the
+newest stable version is "latest". For each tag the shell checks out the
+tag's commit in a temporary `git worktree`, installs its dependencies, runs
+`registryBuildCommand`, then builds that checkout's components, docs,
+previews and config with the **current** shell under the `/v/<version>`
+base path. Tags that predate your shell config are skipped; any other
+failure fails the build (narrow `tags` to exclude a tag that can't be
+built).
+
+**Caching.** A built snapshot is stored in `cacheDir`, keyed by version and
+tag commit, so a deploy only rebuilds latest plus new tags. Entries also
+record the shell version: upgrading `@sntlr/registry-shell` rebuilds every
+snapshot once so old versions pick up shell fixes (their content stays
+frozen). Keep `cacheDir` in a location your CI persists between builds.
+
+**CI notes.** Tags must be present in the clone: many CI checkouts are
+shallow and tagless (e.g. GitHub Actions' `actions/checkout` needs
+`fetch-depth: 0`; elsewhere run `git fetch --tags --unshallow` first). The
+build logs a hint when a shallow clone has no matching tag.
+
+Without `versions`, the build output is exactly the single latest site.
+
 ## Releasing
 
 Publishing is tag-triggered via GitHub Actions. To cut a release:

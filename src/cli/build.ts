@@ -2,16 +2,20 @@
  * `registry-shell build` — produces a Next.js static export tree in
  * `<user-project>/out/`.
  *
- * Pipeline:
+ * Pipeline (one `buildSite` call):
  *   1. Overlay user's public/ onto the shell's bundled public/ (so Next
  *      sees user's registry manifests at /r/*.json, /a11y/*.json, etc.).
  *   2. Run build-time generators that write derived JSON into the merged
  *      public/ — currently just `api/search-index.json`.
  *   3. Run `next build` with `output: "export"` (set in next.config.ts).
  *      Next writes static HTML/JS/CSS to `<shell>/out/`.
- *   4. Copy `<shell>/out/` → `<user-project>/out/`.
- *   5. Restore shell's public/ to its pristine state (remove anything we
- *      added in step 1/2) so repeated builds are idempotent.
+ *   4. Copy `<shell>/out/` → the target out dir.
+ *   5. Restore shell's public/ to its pre-build state (remove anything we
+ *      added in step 1/2, put back anything we overwrote) so repeated builds
+ *      — and the several builds of a versioned run — are idempotent.
+ *
+ * With `versions` set in the config, `versioned-build.ts` calls
+ * `buildSite` once for latest and once per (uncached) release tag.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -23,6 +27,8 @@ import {
   loadUserConfig,
   nextAppDir,
   writeUserSourcesCss,
+  type BuildEnvOptions,
+  type LoadedConfig,
 } from "./shared.js"
 import { generateSearchIndex } from "./generate-search-index.js"
 
@@ -35,6 +41,58 @@ export async function run(args: string[]): Promise<void> {
     process.exit(1)
   }
 
+  try {
+    await buildRegistry(loaded, args)
+  } catch (err) {
+    if (err instanceof BuildExitError) process.exit(err.code)
+    throw err
+  }
+  process.exit(0)
+}
+
+/**
+ * Build everything `registry-shell build` publishes into `<root>/out/`.
+ * Without `versions` in the config this is exactly one `buildSite` call,
+ * the same single latest site as before versioning existed.
+ */
+export async function buildRegistry(
+  loaded: LoadedConfig,
+  args: string[],
+  build: BuildSite = buildSite,
+): Promise<void> {
+  if (loaded.config.versions) {
+    const { runVersionedBuild } = await import("./versioned-build.js")
+    await runVersionedBuild({ loaded, args, buildSite: build })
+  } else {
+    await build(loaded, { args, outDir: path.resolve(loaded.root, "out") })
+  }
+}
+
+/** `next build` exited non-zero; carries its exit code up to `run`. */
+export class BuildExitError extends Error {
+  constructor(public readonly code: number) {
+    super(`[registry-shell] next build exited with code ${code}`)
+  }
+}
+
+export interface BuildSiteOptions extends BuildEnvOptions {
+  /** Extra args forwarded to `next build`. */
+  args: string[]
+  /** Where the finished static export is copied (replaced if present). */
+  outDir: string
+}
+
+export type BuildSite = (loaded: LoadedConfig, options: BuildSiteOptions) => Promise<void>
+
+/**
+ * Build one static site for `loaded` into `options.outDir`. Rejects with a
+ * `BuildExitError` when `next build` fails. `process.env` is restored on
+ * return so consecutive builds (versioned mode) don't leak each other's
+ * NEXT_PUBLIC_* values.
+ */
+export const buildSite: BuildSite = async (loaded, options) => {
+  const { args, outDir, ...envOptions } = options
+
   clearStaleNextCacheIfModeChanged(loaded)
   writeUserSourcesCss(loaded)
 
@@ -43,93 +101,126 @@ export async function run(args: string[]): Promise<void> {
   const userPublic = path.join(loaded.root, "public")
 
   // Step 1: Snapshot shell's public/ before overlay so we can restore it.
-  const shellOwnEntries: Set<string> = new Set(
-    fs.existsSync(shellPublic) ? fs.readdirSync(shellPublic) : [],
-  )
+  const pristine = snapshotDir(shellPublic)
 
   // Step 2: Overlay user's public/ onto shell's public/ (user files win).
-  const overlaidEntries: string[] = []
   if (fs.existsSync(userPublic)) {
     for (const entry of fs.readdirSync(userPublic)) {
       const src = path.join(userPublic, entry)
       const dest = path.join(shellPublic, entry)
       fs.cpSync(src, dest, { recursive: true, force: true })
-      overlaidEntries.push(entry)
     }
   }
 
   // Apply the shell env vars to THIS process so build-time generators can
   // call `loadResolvedConfig()` (which reads USER_REGISTRY_ROOT etc.).
   // The same env is also forwarded to the spawn child below.
-  const env = { ...process.env, ...buildEnvVars(loaded) }
-  Object.assign(process.env, buildEnvVars(loaded))
+  const shellEnv = buildEnvVars(loaded, envOptions)
+  const env = { ...process.env, ...shellEnv }
+  const restoreEnv = applyEnv(shellEnv)
 
-  // Step 3: Pre-build generators (writes into shell's public/ so Next picks up).
   try {
-    await generateSearchIndex(loaded, shellPublic)
-  } catch (err) {
-    console.warn(
-      `[registry-shell] search-index generation failed: ${(err as Error).message}`,
-    )
-  }
-
-  // Step 4: next build (static export — writes to <shellNextApp>/out/).
-  const buildChild = spawn(
-    process.execPath,
-    [NEXT_BIN, "build", shellNextApp, ...args],
-    { stdio: "inherit", env },
-  )
-
-  buildChild.on("exit", (code) => {
-    if (code !== 0) {
-      restoreShellPublic(shellPublic, shellOwnEntries, overlaidEntries)
-      process.exit(code ?? 1)
+    // Step 3: Pre-build generators (writes into shell's public/ so Next picks up).
+    try {
+      await generateSearchIndex(loaded, shellPublic)
+    } catch (err) {
+      console.warn(
+        `[registry-shell] search-index generation failed: ${(err as Error).message}`,
+      )
     }
 
-    // Step 5: Copy out/ to user project root.
+    // Step 4: next build (static export — writes to <shellNextApp>/out/).
+    const code = await new Promise<number>((resolve, reject) => {
+      const buildChild = spawn(
+        process.execPath,
+        [NEXT_BIN, "build", shellNextApp, ...args],
+        { stdio: "inherit", env },
+      )
+      buildChild.on("error", reject)
+      buildChild.on("exit", (c) => resolve(c ?? 1))
+    })
+    if (code !== 0) throw new BuildExitError(code)
+
+    // Step 5: Copy out/ to the target.
     const src = path.join(shellNextApp, "out")
-    const dest = path.resolve(loaded.root, "out")
     if (fs.existsSync(src)) {
-      if (fs.existsSync(dest)) {
-        fs.rmSync(dest, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+      if (fs.existsSync(outDir)) {
+        fs.rmSync(outDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
       }
-      fs.cpSync(src, dest, { recursive: true })
+      fs.mkdirSync(path.dirname(outDir), { recursive: true })
+      fs.cpSync(src, outDir, { recursive: true })
       // Remove the build output from inside node_modules so it doesn't
       // accumulate stale copies across releases.
       fs.rmSync(src, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
-      console.log(`[registry-shell] Static build ready at ${dest}`)
+      console.log(`[registry-shell] Static build ready at ${outDir}`)
     }
+  } finally {
+    // Step 6: Restore shell's public/ (remove overlay) and process.env.
+    restoreDir(shellPublic, pristine)
+    restoreEnv()
+  }
+}
 
-    // Step 6: Restore shell's public/ (remove overlay).
-    restoreShellPublic(shellPublic, shellOwnEntries, overlaidEntries)
-    process.exit(0)
-  })
+/** Set env vars on process.env; returns a function that undoes it. */
+function applyEnv(vars: Record<string, string>): () => void {
+  const previous = new Map<string, string | undefined>()
+  for (const [key, value] of Object.entries(vars)) {
+    previous.set(key, process.env[key])
+    process.env[key] = value
+  }
+  return () => {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+}
+
+/** Relative path → contents of every file under `dir`. */
+export function snapshotDir(dir: string): Map<string, Buffer> {
+  const files = new Map<string, Buffer>()
+  if (!fs.existsSync(dir)) return files
+  const walk = (rel: string) => {
+    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
+      const entryRel = path.join(rel, entry.name)
+      if (entry.isDirectory()) walk(entryRel)
+      else files.set(entryRel, fs.readFileSync(path.join(dir, entryRel)))
+    }
+  }
+  walk("")
+  return files
 }
 
 /**
- * Removes anything from `shellPublic` that wasn't there before the overlay.
- * Keeps shell's bundled favicons + anything else that was part of the
- * shipped package. Runs on both success and failure paths.
+ * Bring `dir` back to the state captured by `snapshotDir`: delete files
+ * the overlay added (and directories left empty by that), and rewrite the
+ * shell's own files the overlay replaced (e.g. a user `favicon.ico`).
+ * Runs on both success and failure paths.
  */
-function restoreShellPublic(
-  shellPublic: string,
-  shellOwnEntries: Set<string>,
-  overlaidEntries: string[],
-): void {
-  if (!fs.existsSync(shellPublic)) return
-  for (const entry of overlaidEntries) {
-    if (!shellOwnEntries.has(entry)) {
-      // Entry didn't exist before overlay — remove cleanly.
-      fs.rmSync(path.join(shellPublic, entry), {
-        recursive: true,
-        force: true,
-        maxRetries: 5,
-        retryDelay: 200,
-      })
+export function restoreDir(dir: string, pristine: Map<string, Buffer>): void {
+  if (!fs.existsSync(dir)) return
+  const current = snapshotDir(dir)
+  for (const [rel, contents] of current) {
+    const original = pristine.get(rel)
+    if (!original) {
+      fs.rmSync(path.join(dir, rel), { force: true, maxRetries: 5, retryDelay: 200 })
+    } else if (!original.equals(contents)) {
+      fs.writeFileSync(path.join(dir, rel), original)
     }
-    // Entry existed in shell's own public/ — we overwrote it, can't
-    // cleanly restore without reinstalling. Leave it; on next build the
-    // user's version replaces it again. Mostly affects favicon.* files
-    // the user might customize.
   }
+  const keepDirs = new Set<string>()
+  for (const rel of pristine.keys()) {
+    for (let d = path.dirname(rel); d !== "." && d !== ""; d = path.dirname(d)) keepDirs.add(d)
+  }
+  const prune = (rel: string): void => {
+    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      const entryRel = path.join(rel, entry.name)
+      prune(entryRel)
+      if (!keepDirs.has(entryRel) && fs.readdirSync(path.join(dir, entryRel)).length === 0) {
+        fs.rmSync(path.join(dir, entryRel), { recursive: true, force: true })
+      }
+    }
+  }
+  prune("")
 }

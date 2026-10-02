@@ -15,5 +15,5 @@
     "isolatedModules": true
   },
   "include": ["src/index.ts", "src/cli/**/*", "src/adapter/**/*", "src/config-loader.ts"],
-  "exclude": ["src/next-app"]
+  "exclude": ["src/next-app", "src/**/*.test.ts"]
 }

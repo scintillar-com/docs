@@ -17,12 +17,14 @@ import { Button } from "@shell/components/shell-ui/button"
 import { LocaleToggle } from "@shell/components/locale-toggle"
 import { ThemeToggle } from "@shell/components/theme-toggle"
 import { SearchTrigger } from "@shell/components/search"
+import { VersionSwitcher } from "@shell/components/version-switcher"
 import { useMobileSidebar } from "@shell/components/sidebar-provider"
 import { useNavData } from "@shell/components/nav-data-provider"
 import { useActiveSection, type ActiveSection } from "@shell/hooks/use-active-section"
 import { TranslatedText } from "@shell/components/translated-text"
 import { GITHUB_URL, formatStarCount } from "@shell/lib/github"
 import { branding } from "@shell/lib/branding"
+import { withBasePath } from "@shell/lib/base-path"
 
 function HeaderTab({
   href,
@@ -96,7 +98,7 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
           <Breadcrumb className="min-w-0">
             <BreadcrumbList className="flex-nowrap gap-1.5 sm:gap-2 text-sm">
               <BreadcrumbItem>
-                <BreadcrumbLink href="/" className="flex items-center gap-2 hover:no-underline">
+                <BreadcrumbLink href={withBasePath("/")} className="flex items-center gap-2 hover:no-underline">
                   <Image
                     src={faviconSrc}
                     alt={`${branding.logoAlt} logo`}
@@ -107,7 +109,7 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href="/" className="font-medium hover:no-underline">
+                <BreadcrumbLink href={withBasePath("/")} className="font-medium hover:no-underline">
                   {branding.shortName}
                 </BreadcrumbLink>
               </BreadcrumbItem>
@@ -176,6 +178,8 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
               </a>
             </Button>
           )}
+          {/* Renders only on sites built with `versions` (see VersionSwitcher). */}
+          <VersionSwitcher />
           <SearchTrigger />
           {/* Locale + theme switches always visible — small icons fit even on
               mobile and avoid the indirection of a Settings modal. */}

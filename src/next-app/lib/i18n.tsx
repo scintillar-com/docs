@@ -277,6 +277,12 @@ const translations = {
     "settings.dark": "Dark",
     "settings.system": "System",
     "settings.language": "Language",
+
+    // Versions (only shown on sites built with `versions`)
+    "versions.label": "Version",
+    "versions.latest": "Latest",
+    "versions.banner": "You're viewing {version}; the latest is {latest}.",
+    "versions.goToLatest": "Go to latest",
   },
   fr: {
     // Header
@@ -535,6 +541,12 @@ const translations = {
     "settings.dark": "Sombre",
     "settings.system": "Système",
     "settings.language": "Langue",
+
+    // Versions
+    "versions.label": "Version",
+    "versions.latest": "Dernière",
+    "versions.banner": "Vous consultez la {version} ; la plus récente est la {latest}.",
+    "versions.goToLatest": "Voir la dernière version",
   },
 } as const
 

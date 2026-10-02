@@ -8,12 +8,15 @@ import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } fr
 import { TestInfo } from "@shell/components/test-info"
 import { useTranslations } from "@shell/lib/i18n"
 import { branding } from "@shell/lib/branding"
+import { CURRENT_VERSION } from "@shell/lib/versions"
 import { FileText, Link as LinkIcon } from "lucide-react"
 
 const DEFAULT_INSTALL_TEMPLATE = "npx shadcn@latest add {siteUrl}/r/{name}.json"
 
 function renderInstallCommand(name: string): string {
-  const template = process.env.NEXT_PUBLIC_SHELL_INSTALL_CMD ?? DEFAULT_INSTALL_TEMPLATE
+  let template = process.env.NEXT_PUBLIC_SHELL_INSTALL_CMD ?? DEFAULT_INSTALL_TEMPLATE
+  // Frozen snapshots install from their own registry JSON (/r/v<version>/).
+  if (CURRENT_VERSION) template = template.replace("/r/{name}", `/r/v${CURRENT_VERSION}/{name}`)
   return template
     .replace(/\{name\}/g, name)
     .replace(/\{siteUrl\}/g, branding.siteUrl.replace(/\/$/, ""))
