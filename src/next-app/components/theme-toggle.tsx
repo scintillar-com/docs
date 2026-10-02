@@ -3,8 +3,26 @@
 import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 import { Button } from "@shell/components/shell-ui/button"
+import { ThemePanel } from "@shell/components/theme-panel"
+import { getShellThemePanel, type ResolvedThemePanelConfig } from "@shell/lib/theme-panel"
 
-export function ThemeToggle() {
+// Build-time constant: null unless the registry config sets `themePanel`
+// (and, on versioned builds, the version is >= `themePanel.since`).
+const SHELL_THEME_PANEL = getShellThemePanel()
+
+/**
+ * Header theme control. Without `themePanel` in the registry config it is
+ * the plain sun/moon toggle; with it, the same button opens the theme panel.
+ * `panel` is injectable for tests.
+ */
+export function ThemeToggle({
+  panel = SHELL_THEME_PANEL,
+}: { panel?: ResolvedThemePanelConfig | null } = {}) {
+  if (panel) return <ThemePanel config={panel} />
+  return <PlainThemeToggle />
+}
+
+function PlainThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme()
 
   return (

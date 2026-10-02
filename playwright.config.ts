@@ -15,6 +15,9 @@ const fixtureDir = path.join(here, "test-fixtures/minimal-registry")
 
 export default defineConfig({
   testDir: "./tests",
+  // The theme panel suite runs against the dev-registry fixture with its own
+  // config (playwright.theme-panel.config.ts).
+  testIgnore: ["**/theme-panel.spec.ts"],
   fullyParallel: false,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,

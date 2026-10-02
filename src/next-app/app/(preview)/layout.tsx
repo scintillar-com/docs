@@ -1,6 +1,9 @@
 import type { Metadata } from "next"
 import { Space_Grotesk, JetBrains_Mono } from "next/font/google"
 import { ThemeProvider } from "@shell/components/theme-provider"
+import { ThemeOverridesScript } from "@shell/components/theme-overrides-script"
+import { ThemeOverridesSync } from "@shell/components/theme-overrides-sync"
+import { getShellThemePanel } from "@shell/lib/theme-panel"
 import { I18nProvider } from "@shell/lib/i18n"
 import { registry } from "@shell/registry.config"
 import { getShellDefaultLocale, getShellLocales } from "@shell/lib/locales"
@@ -53,6 +56,8 @@ export const metadata: Metadata = {
 
 const shellLocales = getShellLocales()
 const shellDefaultLocale = getShellDefaultLocale() || "en"
+// Null unless the registry opts into the theme panel (see lib/theme-panel).
+const themePanel = getShellThemePanel()
 
 export default function PreviewRootLayout({
   children,
@@ -62,7 +67,9 @@ export default function PreviewRootLayout({
       <body
         className={`${spaceGrotesk.variable} ${spaceMono.variable} antialiased`}
       >
+        {themePanel && <ThemeOverridesScript controls={themePanel.controls} />}
         <ThemeProvider>
+          {themePanel && <ThemeOverridesSync controls={themePanel.controls} />}
           <I18nProvider
             extraTranslations={registry?.extraTranslations}
             defaultLocale={shellDefaultLocale}
