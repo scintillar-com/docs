@@ -1,6 +1,6 @@
 {
   "name": "@sntlr/registry-shell",
-  "version": "2.5.6",
+  "version": "2.6.0",
   "description": "Generic Next.js viewer for component registries. Drop a registry-shell.config.ts into your registry and get a full docs/components/blocks site on localhost:3000.",
   "keywords": [
     "shadcn",
