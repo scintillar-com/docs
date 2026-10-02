@@ -8,6 +8,10 @@
  *   /v/<version>/          frozen site of each release tag (Next basePath)
  *   /r/v<version>/         frozen registry JSON of each release tag
  *   /versions.json         manifest read at runtime by the switcher + banner
+ *   /changes/<name>.json   per-item history for the "Changes" tab (see
+ *                          version-changes.ts), also read at runtime
+ *   /releases/             (per site) the changelog, when `versions.changelog`
+ *                          exists in that version's content
  *
  * A snapshot is built from the TAG's content (components, docs,
  * registry.json, previews, its own registry-shell config) with the CURRENT
@@ -41,6 +45,7 @@ import { execFileSync, spawn } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { CONFIG_FILE_CANDIDATES, loadUserConfigFile, type LoadedConfig } from "./shared.js"
 import type { BuildSite } from "./build.js"
+import { writeChangeIndexes, type RegistrySource } from "./version-changes.js"
 import {
   DEFAULT_TAG_GLOB,
   VERSIONS_MANIFEST_FILE,
@@ -53,6 +58,7 @@ import {
 
 export const DEFAULT_CACHE_DIR = "node_modules/.cache/registry-shell/versions"
 export const DEFAULT_REGISTRY_BUILD_COMMAND = "npx shadcn build"
+export const DEFAULT_CHANGELOG = "CHANGELOG.md"
 const CACHE_META_FILE = "snapshot.json"
 
 export interface VersionedBuildOptions {
@@ -109,10 +115,16 @@ export async function runVersionedBuild(
   }
 
   // 1. Latest, at the site root.
-  await buildSite(loaded, { args, outDir, versions: true })
+  await buildSite(loaded, {
+    args,
+    outDir,
+    versions: true,
+    ...changelogOption(loaded.root, versionsConfig.changelog),
+  })
 
   // 2. One frozen snapshot per tag (cache hit or fresh build).
   const published: VersionTag[] = []
+  const registryDirs = new Map<string, string>()
   for (const tag of tags) {
     const entryDir = await ensureSnapshot({
       tag,
@@ -132,6 +144,7 @@ export async function runVersionedBuild(
     const registrySrc = path.join(entryDir, "registry")
     if (fs.existsSync(registrySrc)) {
       fs.cpSync(registrySrc, path.join(outDir, "r", `v${tag.version}`), { recursive: true })
+      registryDirs.set(tag.version, registrySrc)
     }
     published.push(tag)
   }
@@ -148,7 +161,34 @@ export async function runVersionedBuild(
       (manifest.latest ? `, latest release ${manifest.latest}` : "") +
       ` → ${path.join(outDir, VERSIONS_MANIFEST_FILE)}`,
   )
+
+  // 4. Per-item change history, oldest release first, the latest site last.
+  const sources: RegistrySource[] = [...published]
+    .reverse()
+    .filter((t) => registryDirs.has(t.version))
+    .map((t) => ({ version: t.version, dir: registryDirs.get(t.version)! }))
+  sources.push({
+    version: "",
+    dir: path.resolve(loaded.root, loaded.config.paths?.registryJson ?? "public/r"),
+  })
+  const items = writeChangeIndexes(outDir, sources)
+  log(`versions: change history for ${items} registry item(s) → ${path.join(outDir, "changes")}`)
   return manifest
+}
+
+/**
+ * `{ changelog }` build option for a site rooted at `root`: the configured
+ * (or default) changelog path, when that file exists there. Empty object
+ * otherwise, so the Releases page is left out.
+ */
+export function changelogOption(
+  root: string,
+  configured: string | undefined,
+): { changelog?: string } {
+  const rel = configured ?? DEFAULT_CHANGELOG
+  if (!rel) return {}
+  const abs = path.resolve(root, rel)
+  return fs.existsSync(abs) && fs.statSync(abs).isFile() ? { changelog: abs } : {}
 }
 
 interface EnsureSnapshotArgs {
@@ -211,6 +251,9 @@ async function ensureSnapshot(a: EnsureSnapshotArgs): Promise<string | null> {
       basePath: versionBasePath(tag.version),
       version: tag.version,
       versions: true,
+      // The current config decides where the changelog lives; the tag's
+      // copy of that file is what gets rendered.
+      ...changelogOption(tagLoaded.root, versionsConfig.changelog),
     })
 
     const registryJson = path.resolve(

@@ -8,7 +8,8 @@ import { EmptyState, EmptyStateIcon, EmptyStateTitle, EmptyStateDescription } fr
 import { TestInfo } from "@shell/components/test-info"
 import { useTranslations } from "@shell/lib/i18n"
 import { branding } from "@shell/lib/branding"
-import { CURRENT_VERSION } from "@shell/lib/versions"
+import { CURRENT_VERSION, VERSIONS_ENABLED } from "@shell/lib/versions"
+import { VersionChanges } from "@shell/components/version-changes"
 import { FileText, Link as LinkIcon } from "lucide-react"
 
 const DEFAULT_INSTALL_TEMPLATE = "npx shadcn@latest add {siteUrl}/r/{name}.json"
@@ -86,6 +87,8 @@ const tabs = [
   { value: "guidelines", labelKey: "tabs.guidelines" as const },
   { value: "a11y", labelKey: "tabs.accessibility" as const },
   { value: "tests", labelKey: "tabs.tests" as const },
+  // Diff between versions; only on sites built with `versions`.
+  ...(VERSIONS_ENABLED ? [{ value: "changes", labelKey: "tabs.changes" as const }] : []),
 ]
 
 export function ComponentTabs({ name, source }: ComponentTabsProps) {
@@ -171,6 +174,17 @@ export function ComponentTabs({ name, source }: ComponentTabsProps) {
               <TestInfo name={name} />
             </div>
           </TabsContent>
+
+          {VERSIONS_ENABLED && (
+            <TabsContent value="changes" className="px-2 mt-6">
+              <div className="space-y-4">
+                <SectionHeading id="changes">
+                  {t("tabs.changes")}
+                </SectionHeading>
+                {activeTab === "changes" && <VersionChanges name={name} />}
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
