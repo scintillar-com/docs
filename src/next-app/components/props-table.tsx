@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { withBasePath } from "@shell/lib/base-path"
 import { FileCode } from "lucide-react"
 import { Badge } from "@shell/components/shell-ui/badge"
 import { EmptyState, EmptyStateIcon, EmptyStateDescription } from "@shell/components/shell-ui/empty-state"
@@ -32,7 +33,7 @@ export function PropsTable({ name }: { name: string }) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    fetch(`/props/${name}.json`)
+    fetch(withBasePath(`/props/${name}.json`))
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()

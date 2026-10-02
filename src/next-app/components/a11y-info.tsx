@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import { withBasePath } from "@shell/lib/base-path"
 import { PartyPopper } from "lucide-react"
 import { Button } from "@shell/components/shell-ui/button"
 import {
@@ -107,7 +108,7 @@ export function A11yInfo({ name }: { name: string }) {
   }, [allChecked, dismissed])
 
   useEffect(() => {
-    fetch(`/a11y/${name}.json`)
+    fetch(withBasePath(`/a11y/${name}.json`))
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()

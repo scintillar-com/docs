@@ -9,6 +9,7 @@ import type { DocMeta } from "@shell/lib/docs"
 import type { CategoryMeta, ComponentMeta } from "@shell/lib/components-nav"
 import { useTranslations, useLocale } from "@shell/lib/i18n"
 import { Backdrop } from "@shell/components/shell-ui/backdrop"
+import { RELEASES_ENABLED } from "@shell/lib/versions"
 
 import type { ActiveSection } from "@shell/hooks/use-active-section"
 
@@ -85,6 +86,12 @@ export function Sidebar({
             {doc.titles?.[locale] ?? doc.title}
           </SidebarLink>
         ))}
+        {/* Versioned builds with a changelog only (see /releases). */}
+        {RELEASES_ENABLED && (
+          <SidebarLink href="/releases" active={pathname === "/releases"}>
+            {t("releases.title")}
+          </SidebarLink>
+        )}
       </ul>
     </SidebarSection>
   )

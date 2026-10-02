@@ -1,3 +1,5 @@
+import { withBasePath } from "@shell/lib/base-path"
+
 /**
  * Inline component preview, rendered as an iframe targeting the
  * `(preview)/preview/[name]/` route. The iframe boots its own Next root
@@ -24,7 +26,7 @@ export function ComponentPreview({ name }: { name: string }) {
       // Trailing slash matches `next.config.ts`'s `trailingSlash: true`
       // so static export's emitted `index.html` is hit directly without
       // a 308 hop.
-      src={`/preview/${name}/`}
+      src={withBasePath(`/preview/${name}/`)}
       title={`${name} preview`}
       // Layout host (`ResizablePreview`) sets the actual height; the
       // iframe stretches to fill.

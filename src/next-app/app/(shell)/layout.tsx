@@ -6,6 +6,7 @@ import { getShellThemePanel } from "@shell/lib/theme-panel"
 import { I18nProvider } from "@shell/lib/i18n"
 import { SidebarProvider } from "@shell/components/sidebar-provider"
 import { Header } from "@shell/components/header"
+import { VersionBanner } from "@shell/components/version-banner"
 import { A11yProvider } from "@shell/components/a11y-provider"
 import { NavigationProgress } from "@shell/components/navigation-progress"
 import { NavDataProvider } from "@shell/components/nav-data-provider"
@@ -93,6 +94,7 @@ export default async function RootLayout({
                 <NavigationProgress />
                 <A11yProvider />
                 <Header githubStars={githubStars} />
+                <VersionBanner />
                 {/* Mobile-only sidebar mounted here so the hamburger menu works
                     on every page (including the homepage). Per-section layouts
                     still mount their own desktop-only Sidebar via SidebarLayout. */}

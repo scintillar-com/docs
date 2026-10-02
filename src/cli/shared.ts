@@ -23,11 +23,12 @@ export const NEXT_BIN = requireFromHere.resolve("next/dist/bin/next")
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
-const CONFIG_FILE_CANDIDATES = [
+export const CONFIG_FILE_CANDIDATES = [
   "registry-shell.config.ts",
   "registry-shell.config.js",
   "registry-shell.config.mjs",
 ]
+
 
 /** Walk upward from cwd looking for a config file. Returns null if none. */
 export function findConfigFile(cwd: string = process.cwd()): string | null {
@@ -72,7 +73,11 @@ export interface LoadedConfig {
 export function loadUserConfig(): LoadedConfig | null {
   const configPath = findConfigFile()
   if (!configPath) return null
+  return loadUserConfigFile(configPath)
+}
 
+/** Parse a specific config file (used for tag snapshots). */
+export function loadUserConfigFile(configPath: string): LoadedConfig {
   const jiti = createJiti(import.meta.url, { interopDefault: true })
   const loaded = jiti(configPath) as unknown
   const config = (
@@ -250,10 +255,43 @@ function resolveLocaleList(root: string, config: ShellConfig): string[] {
   return found
 }
 
-export function buildEnvVars(loaded: LoadedConfig | null): Record<string, string> {
+/**
+ * Extra build-time knobs used by the versioned build. All optional; with
+ * none set, `buildEnvVars` returns exactly what it did before versioning.
+ */
+export interface BuildEnvOptions {
+  /**
+   * Next.js `basePath` for a frozen snapshot, e.g. `/v/1.0.0`. Forwarded
+   * as NEXT_PUBLIC_SHELL_BASE_PATH (read by next.config.ts and by client
+   * code that builds raw URLs).
+   */
+  basePath?: string
+  /** Version shown by a frozen snapshot, e.g. `1.0.0`. Empty for latest. */
+  version?: string
+  /** Turns on the header version switcher and banner. */
+  versions?: boolean
+  /**
+   * Absolute path of an existing changelog to render at `/releases`
+   * (versioned builds only). Forwarded as SHELL_CHANGELOG_PATH, plus
+   * NEXT_PUBLIC_SHELL_RELEASES for the nav link.
+   */
+  changelog?: string
+}
+
+export function buildEnvVars(
+  loaded: LoadedConfig | null,
+  options: BuildEnvOptions = {},
+): Record<string, string> {
   // Always set SHELL_APP_ROOT so the Next app can resolve its own bundled
   // files (fallbacks, globals.css) independently of process.cwd().
   const base: Record<string, string> = { SHELL_APP_ROOT: nextAppDir() }
+  if (options.versions) base.NEXT_PUBLIC_SHELL_VERSIONS = "1"
+  if (options.version) base.NEXT_PUBLIC_SHELL_VERSION = options.version
+  if (options.basePath) base.NEXT_PUBLIC_SHELL_BASE_PATH = options.basePath
+  if (options.changelog) {
+    base.SHELL_CHANGELOG_PATH = options.changelog
+    base.NEXT_PUBLIC_SHELL_RELEASES = "1"
+  }
   if (!loaded) return base
 
   const { configPath, root, config } = loaded

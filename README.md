@@ -162,9 +162,8 @@ ignored; an empty list means all three.
 `since` is for versioned docs: versions older than `since` keep the plain
 toggle (their theme predates the variables the panel sets). On an
 unversioned site, `since` has no effect and the panel is always on.
-Versioned builds tell the shell which version they render through
-`NEXT_PUBLIC_SHELL_DOCS_VERSION` (see `isThemePanelEnabled` in
-`src/next-app/lib/theme-panel.ts`).
+With `versions` on, each snapshot is compared to `since`; the latest
+site always shows the panel.
 
 ## Advanced: custom adapters
 
@@ -230,6 +229,103 @@ serves the same bytes consumers' `npx shadcn add` commands expect.
 > when the shell's Next app lives inside `node_modules`. The trade-off
 > is no runtime SSR / no API routes — registries that need those
 > patterns aren't served by this shell.
+
+## Versioned docs and registry
+
+Opt in with `versions` to publish a frozen, browsable copy of every release
+next to the latest site:
+
+```ts
+// registry-shell.config.ts
+export default defineConfig({
+  branding: { ... },
+  versions: {
+    // All optional — these are the defaults:
+    // tags: "v*",                                           // git tag glob
+    // cacheDir: "node_modules/.cache/registry-shell/versions",
+    // registryBuildCommand: "npx shadcn build",
+    // installCommand: <detected from the lockfile>,
+    // changelog: "CHANGELOG.md",                            // Releases page source
+  },
+})
+```
+
+`registry-shell build` then produces:
+
+| URL                     | Content                                               |
+|-------------------------|-------------------------------------------------------|
+| `/`                     | Latest site, built from the working tree (as before)  |
+| `/r/<name>.json`        | Latest registry JSON                                  |
+| `/v/<version>/`         | Frozen site of each matching tag                      |
+| `/r/v<version>/<name>.json` | Frozen registry JSON of each matching tag         |
+| `/versions.json`        | Manifest: `{ latest, versions: [{ version, tag, commit, date, isLatest, path, registry }] }` |
+| `/changes/<name>.json`  | Change history of each registry item, read by the "Changes" tab |
+| `/releases/`            | Releases page, when the changelog exists (also `/v/<version>/releases/`) |
+
+So `npx shadcn add https://ui.example.com/r/v1.0.0/button.json` keeps
+installing exactly what shipped in 1.0.0, and each snapshot's install tab
+points at its own `/r/v<version>/` URLs.
+
+The header gets a version switcher (it keeps the current page when it
+exists in the target version, otherwise opens that version's home), and
+every version other than the newest release shows a banner linking back to
+the latest site. Both read `/versions.json` at runtime, so an older
+snapshot always knows about newer releases.
+
+**How snapshots are built.** The version is the trailing semver of the tag
+name (`v1.2.0`, `my-ui@1.2.0`); tags without one are ignored, and the
+newest stable version is "latest". For each tag the shell checks out the
+tag's commit in a temporary `git worktree`, installs its dependencies, runs
+`registryBuildCommand`, then builds that checkout's components, docs,
+previews and config with the **current** shell under the `/v/<version>`
+base path. Tags that predate your shell config are skipped; any other
+failure fails the build (narrow `tags` to exclude a tag that can't be
+built).
+
+**Caching.** A built snapshot is stored in `cacheDir`, keyed by version and
+tag commit, so a deploy only rebuilds latest plus new tags. Entries also
+record the shell version: upgrading `@sntlr/registry-shell` rebuilds every
+snapshot once so old versions pick up shell fixes (their content stays
+frozen). Keep `cacheDir` in a location your CI persists between builds.
+
+**CI notes.** Tags must be present in the clone: many CI checkouts are
+shallow and tagless (e.g. GitHub Actions' `actions/checkout` needs
+`fetch-depth: 0`; elsewhere run `git fetch --tags --unshallow` first). The
+build logs a hint when a shallow clone has no matching tag.
+
+**Releases page.** When `changelog` (default `CHANGELOG.md`, relative to
+the config; `""` turns it off) exists, `/releases` renders it, linked from
+the Documentation sidebar. The expected format is the one
+[changesets](https://github.com/changesets/changesets) writes: one
+`## <version>` section per release (newest first) with `### Major Changes`
+/ `### Minor Changes` / `### Patch Changes` lists. Any `## ` heading
+containing a semver works (`## v1.2.0`, `## [1.2.0] - 2026-09-29`);
+entries are rendered as plain Markdown (GFM), not MDX. Each section is
+tagged with its kinds of change, marks the newest release, and links to
+that version's docs when a snapshot of it is published (both read from
+`/versions.json` at runtime). Each snapshot renders the changelog as it
+was at its tag; tags without the file get no Releases page.
+
+**Changes tab.** Component pages get a "Changes" tab with a unified diff of
+the item's registry files between two versions, defaulting to the
+previous version → the one being viewed (on the latest site, the newest
+release → the working tree). Readers can pick any two versions. When
+nothing changed it says "Unchanged since v1.0.0"; when the item didn't
+exist in the older version, "Added in v1.1.0". The diff covers every file
+of the registry item plus its metadata (dependencies,
+`registryDependencies`, file targets, `cssVars`...), so a dependency bump
+shows up too.
+
+The history is computed at build time from each version's registry JSON
+(the files published under `/r/v<version>/`, plus the working tree's for
+latest) and written to `/changes/<name>.json` at the site root: every
+version's file hashes plus each distinct file content once, so one fetch
+lets the browser diff any pair of versions. Like `/versions.json`, it is
+regenerated on every deploy, so cached snapshots of older versions know
+about later releases.
+
+Without `versions`, the build output is exactly the single latest site:
+no Releases page, no Changes tab, no `/changes/`.
 
 ## Releasing
 

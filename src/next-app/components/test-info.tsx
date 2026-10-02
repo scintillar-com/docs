@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { withBasePath } from "@shell/lib/base-path"
 import { CheckCircle2, XCircle, FlaskConical, Eye, Keyboard, Gauge, Shield } from "lucide-react"
 import { Badge } from "@shell/components/shell-ui/badge"
 import {
@@ -65,7 +66,7 @@ export function TestInfo({ name }: { name: string }) {
   const t = useTranslations()
 
   useEffect(() => {
-    fetch(`/tests/${name}.json`)
+    fetch(withBasePath(`/tests/${name}.json`))
       .then((r) => {
         if (!r.ok) throw new Error()
         return r.json()

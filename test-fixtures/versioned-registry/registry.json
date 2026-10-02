@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "versioned-fixture",
+  "homepage": "http://localhost:3111",
+  "items": [
+    {
+      "name": "hello",
+      "type": "registry:component",
+      "title": "Hello",
+      "description": "Greets someone.",
+      "files": [{ "path": "components/ui/hello.tsx", "type": "registry:component" }]
+    }
+  ]
+}

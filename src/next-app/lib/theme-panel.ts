@@ -121,13 +121,12 @@ export function isThemePanelEnabled(
 /**
  * The docs version this build renders, or null for an unversioned build.
  *
- * Integration point for versioned builds: set NEXT_PUBLIC_SHELL_DOCS_VERSION
- * (e.g. `"1.0.0"`) in the env of each snapshot's `next build`, or replace
- * this function with a read of the build's version info. Until then it
- * returns null and the panel is enabled wherever `themePanel` is set.
+ * Versioned builds set NEXT_PUBLIC_SHELL_VERSION (e.g. `"1.0.0"`) on each
+ * snapshot (see `buildEnvVars`). The latest site and unversioned builds
+ * leave it unset, so the panel is enabled wherever `themePanel` is set.
  */
 export function getCurrentDocsVersion(): string | null {
-  const v = process.env.NEXT_PUBLIC_SHELL_DOCS_VERSION
+  const v = process.env.NEXT_PUBLIC_SHELL_VERSION
   return v && v.trim() !== "" ? v.trim() : null
 }
 

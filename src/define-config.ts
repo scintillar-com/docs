@@ -103,6 +103,55 @@ export interface ShellPaths {
 }
 
 /**
+ * Opt-in versioned build. When set, `registry-shell build` keeps producing
+ * the latest site at `/` and additionally publishes one frozen snapshot per
+ * matching git tag: the site under `/v/<version>/` and the registry JSON
+ * under `/r/v<version>/`. A `/versions.json` manifest drives the header's
+ * version switcher and the "old version" banner.
+ *
+ * Every snapshot is built from the tag's own content (components, docs,
+ * registry.json, previews) with the shell running the build, and cached
+ * per tag commit so a deploy only rebuilds latest plus new tags.
+ */
+export interface VersionsConfig {
+  /**
+   * Git tag glob (as understood by `git tag --list`) selecting the tags to
+   * publish. The version is the trailing semver of the tag name, so both
+   * `v1.2.0` and `my-ui@1.2.0` work. Default: `"v*"`.
+   */
+  tags?: string
+  /**
+   * Where built snapshots are cached, relative to the config file.
+   * Default: `"node_modules/.cache/registry-shell/versions"`, which most
+   * CI/CD build caches (Vercel, Netlify) already persist.
+   */
+  cacheDir?: string
+  /**
+   * Command that builds the registry JSON inside a tag's checkout, run from
+   * the registry root after dependencies are installed.
+   * Default: `"npx shadcn build"`. Set to `""` to skip (e.g. when the built
+   * `public/r` is committed).
+   */
+  registryBuildCommand?: string
+  /**
+   * Command that installs a tag's dependencies, run where its lockfile
+   * lives. Default: picked from the lockfile (`pnpm install
+   * --frozen-lockfile`, `npm ci`, `yarn install`, `bun install`). Set to
+   * `""` to skip.
+   */
+  installCommand?: string
+  /**
+   * Changelog rendered by the Releases page (`/releases`), relative to the
+   * config file. Changesets format: one `## <version>` section per release
+   * with `### Major|Minor|Patch Changes` lists. Each version's snapshot
+   * reads the file as it was at that tag. When the file doesn't exist the
+   * page and its nav link are left out. Default: `"CHANGELOG.md"`; `""`
+   * disables the page.
+   */
+  changelog?: string
+}
+
+/**
  * Advanced: point at a custom adapter module. The module must default-export
  * a factory `(resolved: ResolvedShellConfig) => RegistryAdapter`. When unset,
  * the shell uses its built-in convention-based adapter.
@@ -246,6 +295,13 @@ export interface ShellConfig {
    * Example: `themePanel: { since: "1.0.0" }`.
    */
   themePanel?: ThemePanelConfig
+
+  /**
+   * Optional. Publish a frozen, browsable snapshot of every released
+   * version (see `VersionsConfig`). Off by default: when absent, the build
+   * output is exactly the single latest site.
+   */
+  versions?: VersionsConfig
 }
 
 /**

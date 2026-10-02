@@ -113,11 +113,11 @@ describe("getShellThemePanel (env)", () => {
 
   it("reads the config and the docs version", () => {
     vi.stubEnv("NEXT_PUBLIC_SHELL_THEME_PANEL", JSON.stringify({ since: "1.0.0" }))
-    vi.stubEnv("NEXT_PUBLIC_SHELL_DOCS_VERSION", "")
+    vi.stubEnv("NEXT_PUBLIC_SHELL_VERSION", "")
     expect(getShellThemePanel()?.controls).toEqual(["mode", "primary", "tint"])
-    vi.stubEnv("NEXT_PUBLIC_SHELL_DOCS_VERSION", "0.1.0")
+    vi.stubEnv("NEXT_PUBLIC_SHELL_VERSION", "0.1.0")
     expect(getShellThemePanel()).toBeNull()
-    vi.stubEnv("NEXT_PUBLIC_SHELL_DOCS_VERSION", "1.0.0")
+    vi.stubEnv("NEXT_PUBLIC_SHELL_VERSION", "1.0.0")
     expect(getShellThemePanel()).not.toBeNull()
   })
 })

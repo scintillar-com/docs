@@ -45,7 +45,13 @@ function resolveUserModule(relativePath: string, fallback: string): string {
 
 const USER_PREVIEWS = resolveUserModule("components/previews", "fallback/previews.ts")
 
+// Set only for frozen snapshots of the versioned build (`/v/<version>`).
+// Absent for regular builds, so their output is unchanged.
+const BASE_PATH = process.env.NEXT_PUBLIC_SHELL_BASE_PATH || undefined
+
 const nextConfig: NextConfig = {
+  ...(BASE_PATH ? { basePath: BASE_PATH } : {}),
+
   // Static export (Storybook model) — the shell produces a pure static
   // HTML/JS/CSS tree under `out/`, deployable to any static host (Vercel,
   // Netlify, S3, GitHub Pages). No serverless functions, no runtime file
