@@ -94,21 +94,43 @@ const tabs = [
 export function ComponentTabs({ name, source }: ComponentTabsProps) {
   const [activeTab, setActiveTab] = useState("install")
   const contentRef = useRef<HTMLDivElement>(null)
+  const tabsScrollRef = useRef<HTMLDivElement>(null)
   const tocEntries = useTocFromContent(contentRef, activeTab)
   const t = useTranslations()
+
+  // Keep the active tab visible when the tab row scrolls (narrow screens).
+  // Only the row scrolls horizontally; the page never moves.
+  useEffect(() => {
+    const row = tabsScrollRef.current
+    const active = row?.querySelector<HTMLElement>('[role="tab"][data-state="active"]')
+    if (!row || !active) return
+    const left = active.offsetLeft - row.offsetLeft
+    const right = left + active.offsetWidth
+    if (left < row.scrollLeft) row.scrollTo({ left: left - 8, behavior: "smooth" })
+    else if (right > row.scrollLeft + row.clientWidth)
+      row.scrollTo({ left: right - row.clientWidth + 8, behavior: "smooth" })
+  }, [activeTab])
 
   return (
     <div className="flex justify-center gap-8">
       <div ref={contentRef} className="flex-1 min-w-0 xl:max-w-225">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="sticky top-14 md:top-14 z-10 bg-background border-b border-border pt-4 md:pt-8 -mx-1 px-1">
-            <TabsList variant="line" className="w-full justify-start *:shrink-0">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {t(tab.labelKey)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            {/* Narrow screens can't fit every tab: scroll them sideways instead
+                of widening the page. pb-2/-mb-2 leave room for the active
+                underline (drawn below each trigger) without moving the border. */}
+            <div
+              ref={tabsScrollRef}
+              className="-mb-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              <TabsList variant="line" className="w-max min-w-full justify-start *:shrink-0">
+                {tabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    {t(tab.labelKey)}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="install" className="px-2 mt-6">
