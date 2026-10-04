@@ -43,9 +43,10 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Root tsconfig covers src/, next-app/, and playwright.config.ts.
-      # `noEmit: true` is set there, so this is pure type-checking.
-      - run: npx tsc -p tsconfig.json
+      # packages/registry-shell/tsconfig.json covers src/, next-app/, and the
+      # Playwright configs. `noEmit: true` is set there, so this is pure
+      # type-checking. Root scripts forward to the package.
+      - run: pnpm typecheck
 
   build:
     name: Build

@@ -6,7 +6,21 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  fixtures/dev-registry:
+    devDependencies:
+      '@sntlr/registry-shell':
+        specifier: workspace:*
+        version: link:../../packages/registry-shell
+      react:
+        specifier: ^19.1.0
+        version: 19.1.6
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.1.6(react@19.1.6)
+
+  packages/registry-shell:
     dependencies:
       '@dnd-kit/core':
         specifier: ^6.3.1
@@ -126,18 +140,6 @@ importers:
       vitest:
         specifier: ^4.1.3
         version: 4.1.4(@types/node@22.19.17)(vite@8.0.8(@types/node@22.19.17)(esbuild@0.27.7)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
-
-  test-fixtures/dev-registry:
-    devDependencies:
-      '@sntlr/registry-shell':
-        specifier: workspace:*
-        version: link:../..
-      react:
-        specifier: ^19.1.0
-        version: 19.1.6
-      react-dom:
-        specifier: ^19.1.0
-        version: 19.1.6(react@19.1.6)
 
 packages:
 
@@ -1747,6 +1749,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@unrs/resolver-binding-android-arm-eabi@1.11.1':
     resolution: {integrity: sha512-ppLRUgHVaGRWUx0R0Ut06Mjo9gBaBkg3v/8AxusGLhsIotbBLuRk51rAzqLC8gq6NyyAojEXglNjzf6R948DNw==}
@@ -2328,6 +2331,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'

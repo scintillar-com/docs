@@ -5,13 +5,13 @@ import { fileURLToPath } from "node:url"
 /**
  * Playwright smoke suite for @scintillar/ui-shell.
  *
- * Boots the shell against `test-fixtures/minimal-registry/` on port 3100 and
+ * Boots the shell against `fixtures/minimal-registry/` (repo root) on port 3100 and
  * hits a handful of routes to catch gross regressions. Fast (~20s), no visual
  * comparison, no user flows — just "does each route render at all".
  */
 const isCI = !!process.env.CI
 const here = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDir = path.join(here, "test-fixtures/minimal-registry")
+const fixtureDir = path.join(here, "../../fixtures/minimal-registry")
 
 export default defineConfig({
   testDir: "./tests",
@@ -35,7 +35,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "node ../../dist/cli/index.js dev",
+    command: "node ../../packages/registry-shell/dist/cli/index.js dev",
     cwd: fixtureDir,
     url: "http://localhost:3100",
     timeout: 60_000,

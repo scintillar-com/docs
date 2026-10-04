@@ -1,8 +1,10 @@
 name: Publish to npm
 
 # Tag-triggered: push a `v*` tag (e.g. `v1.0.0`) and CI publishes that
-# version to npm. Use `npm version patch|minor|major` locally — it bumps
-# package.json, commits, and tags in one shot; then `git push --follow-tags`.
+# version to npm. Use `pnpm release patch|minor|major` locally — it bumps
+# every package in packages/*, commits, and tags in one shot (`npm version`
+# no longer tags, since the package isn't at the git root); then
+# `git push origin main --follow-tags`.
 on:
   push:
     tags: ["v*"]
@@ -42,7 +44,7 @@ jobs:
         run: pnpm lint
 
       - name: Type-check
-        run: npx tsc -p tsconfig.json
+        run: pnpm typecheck
 
       - name: Unit tests
         run: pnpm test
@@ -59,7 +61,7 @@ jobs:
         #    Any version containing `-` is treated as a prerelease (semver).
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
-          PKG=$(node -p "require('./package.json').version")
+          PKG=$(node -p "require('./packages/registry-shell/package.json').version")
           if [ "$TAG" != "$PKG" ]; then
             echo "::error::Tag v$TAG does not match package.json version $PKG"
             exit 1
@@ -85,4 +87,5 @@ jobs:
         # registry. The package must have a trusted publisher
         # configured on npmjs.com pointing at this repo + workflow.
         # `prepack` rebuilds `dist/` before the tarball.
+        working-directory: packages/registry-shell
         run: npx npm@latest publish --provenance --tag ${{ steps.version.outputs.dist }}

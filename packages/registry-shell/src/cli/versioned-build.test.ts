@@ -1,6 +1,6 @@
 /**
  * End-to-end check of the versioned build's orchestration against a real
- * git repo: `test-fixtures/versioned-registry` is copied into a temp dir,
+ * git repo: `fixtures/versioned-registry` (repo root) is copied into a temp dir,
  * committed and tagged twice, then built. `next build` is replaced by a
  * fake `buildSite` (writing a small JSON "page" + the overlaid public/ tree)
  * so the test runs in seconds; everything else — tag discovery, worktree
@@ -20,7 +20,7 @@ import type { ChangeIndex } from "./version-changes.js"
 import { compareItem, defaultRange } from "../next-app/lib/changes"
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
-const FIXTURE = path.resolve(HERE, "../../test-fixtures/versioned-registry")
+const FIXTURE = path.resolve(HERE, "../../../../fixtures/versioned-registry")
 const CONFIG = "registry-shell.config.mjs"
 
 let tmp: string

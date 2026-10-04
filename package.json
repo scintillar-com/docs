@@ -1,127 +1,19 @@
 {
-  "name": "@sntlr/registry-shell",
-  "version": "2.6.1",
-  "description": "Generic Next.js viewer for component registries. Drop a registry-shell.config.ts into your registry and get a full docs/components/blocks site on localhost:3000.",
-  "keywords": [
-    "shadcn",
-    "registry",
-    "components",
-    "ui",
-    "next",
-    "nextjs",
-    "docs",
-    "shell"
-  ],
+  "name": "registry-shell-monorepo",
+  "private": true,
+  "description": "Workspace root for @sntlr/registry-shell (packages/registry-shell) and its test fixtures (fixtures/*).",
   "license": "MIT",
-  "author": "Scintillar",
-  "homepage": "https://github.com/scintillar-com/registry-shell#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/scintillar-com/registry-shell.git"
-  },
-  "bugs": {
-    "url": "https://github.com/scintillar-com/registry-shell/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "type": "module",
-  "bin": {
-    "registry-shell": "./dist/cli/index.js"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./shell/*": "./src/next-app/*",
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist/adapter",
-    "dist/cli",
-    "dist/config-loader.js",
-    "dist/config-loader.d.ts",
-    "dist/define-config.js",
-    "dist/define-config.d.ts",
-    "dist/index.js",
-    "dist/index.d.ts",
-    "src/adapter",
-    "src/cli",
-    "src/config-loader.ts",
-    "src/define-config.ts",
-    "src/index.ts",
-    "src/next-app/app",
-    "src/next-app/components",
-    "src/next-app/fallback",
-    "src/next-app/hooks",
-    "src/next-app/lib",
-    "src/next-app/public",
-    "src/next-app/next.config.ts",
-    "src/next-app/next-env.d.ts",
-    "src/next-app/postcss.config.mjs",
-    "src/next-app/registry.config.ts",
-    "src/next-app/tsconfig.json",
-    "src/next-app/user-aliases.d.ts",
-    "!src/**/*.test.ts",
-    "README.md"
-  ],
+  "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=18.18"
   },
-  "packageManager": "pnpm@10.28.0",
   "scripts": {
-    "dev:shell": "node dist/cli/index.js dev",
+    "build": "pnpm --filter @sntlr/registry-shell build",
+    "lint": "pnpm --filter @sntlr/registry-shell lint",
+    "typecheck": "pnpm --filter @sntlr/registry-shell typecheck",
+    "test": "pnpm --filter @sntlr/registry-shell test",
+    "test:theme-panel": "pnpm --filter @sntlr/registry-shell test:theme-panel",
     "dev:registry": "pnpm --filter dev-registry shell",
-    "build": "tsc -p tsconfig.cli.json",
-    "build:cli": "tsc -p tsconfig.cli.json",
-    "prepack": "tsc -p tsconfig.cli.json",
-    "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
-    "test:smoke": "pnpm build && playwright test",
-    "test:theme-panel": "pnpm build && playwright test -c playwright.theme-panel.config.ts"
-  },
-  "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
-    "@tailwindcss/postcss": "^4.1.0",
-    "@tailwindcss/typography": "^0.5.19",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "cross-env": "^7.0.3",
-    "date-fns": "^4.1.0",
-    "gray-matter": "^4.0.3",
-    "input-otp": "^1.4.2",
-    "jiti": "^2.4.2",
-    "lucide-react": "^0.503.0",
-    "next": "^15.5.14",
-    "next-mdx-remote": "^6.0.0",
-    "next-themes": "^0.4.6",
-    "radix-ui": "^1.4.3",
-    "react": "^19.1.0",
-    "react-day-picker": "^9.14.0",
-    "react-dom": "^19.1.0",
-    "remark-gfm": "^4.0.1",
-    "sonner": "^2.0.7",
-    "tailwind-merge": "^3.3.1",
-    "tailwindcss": "^4.1.0",
-    "tw-animate-css": "^1.3.6",
-    "yaml": "^2.8.3",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
-    "@playwright/test": "^1.59.1",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "^15.5.15",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "tsx": "^4.21.0",
-    "typescript": "^5.7.0",
-    "vitest": "^4.1.3"
+    "release": "node scripts/release.mjs"
   }
 }

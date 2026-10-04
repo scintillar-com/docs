@@ -20,8 +20,6 @@ const config = [
       "src/next-app/app/_user-sources.css",
       "src/next-app/app/_user-global.css",
       "src/next-app/.*-mode",
-      "test-fixtures/**/node_modules/**",
-      "test-fixtures/**/.next/**",
       "*.tsbuildinfo",
     ],
   },

@@ -5,17 +5,17 @@ node_modules
 dist
 
 # Next.js dev cache
-src/next-app/.next
+packages/*/src/next-app/.next
 
-# Dev-registry fixture build output (test-fixtures/<name>/out from
-# `registry-shell build`, plus its own Next cache when using `dev`).
-test-fixtures/*/out
-test-fixtures/*/.next
+# Fixture build output (fixtures/<name>/out from `registry-shell build`,
+# plus its own Next cache when using `dev`).
+fixtures/*/out
+fixtures/*/.next
 
 # Files the shell CLI rewrites every boot
-src/next-app/.*-mode
-src/next-app/app/_user-sources.css
-src/next-app/app/_user-global.css
+packages/*/src/next-app/.*-mode
+packages/*/src/next-app/app/_user-sources.css
+packages/*/src/next-app/app/_user-global.css
 
 # TypeScript cache
 *.tsbuildinfo

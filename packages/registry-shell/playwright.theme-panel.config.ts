@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 
 /**
  * Playwright suite for the theme panel. Boots the shell against
- * `test-fixtures/dev-registry/` (which sets `themePanel: {}`) and drives the
+ * `fixtures/dev-registry/` (repo root) (which sets `themePanel: {}`) and drives the
  * header popover end to end: mode, primary color, tint, Copy CSS,
  * persistence and sync into the preview iframe.
  *
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url"
  */
 const isCI = !!process.env.CI
 const here = path.dirname(fileURLToPath(import.meta.url))
-const fixtureDir = path.join(here, "test-fixtures/dev-registry")
+const fixtureDir = path.join(here, "../../fixtures/dev-registry")
 const port = Number(process.env.THEME_PANEL_PORT ?? 3100)
 
 export default defineConfig({
@@ -40,7 +40,7 @@ export default defineConfig({
   ],
   webServer: {
     // Trailing `-p` wins over the fixture's `port: 3100`.
-    command: `node ../../dist/cli/index.js dev -p ${port}`,
+    command: `node ../../packages/registry-shell/dist/cli/index.js dev -p ${port}`,
     cwd: fixtureDir,
     url: `http://localhost:${port}`,
     timeout: 180_000,

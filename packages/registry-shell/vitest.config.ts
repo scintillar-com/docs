@@ -27,7 +27,6 @@ export default defineConfig({
       "**/dist/**",
       "**/.next/**",
       "tests/**",
-      "test-fixtures/**",
     ],
     passWithNoTests: true,
   },
