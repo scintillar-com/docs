@@ -36,6 +36,10 @@ const translations = {
     "search.groupDocs": "Documentation",
     "search.groupComponents": "Components",
 
+    // Docs-only homepage
+    "home.startReading": "Start reading",
+    "home.pages": "Pages",
+
     // Component page
     "component.subtitle": "Install this component.",
     "component.installation": "Installation",
@@ -178,6 +182,10 @@ const translations = {
     "search.noResults": "Aucun résultat trouvé.",
     "search.groupDocs": "Documentation",
     "search.groupComponents": "Composants",
+
+    // Page d'accueil (documentation seule)
+    "home.startReading": "Commencer la lecture",
+    "home.pages": "Pages",
 
     // Component page
     "component.subtitle": "Installez ce composant.",

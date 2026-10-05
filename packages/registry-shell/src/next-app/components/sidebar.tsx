@@ -96,7 +96,8 @@ export function Sidebar({
     </SidebarSection>
   )
 
-  const componentsSection = (
+  // Hidden when empty, like blocks: a docs-only site has no components.
+  const componentsSection = uiComponents.length > 0 ? (
     <SidebarSection icon={Component} title={t("sidebar.components")}>
       <SidebarComponentList
         components={uiComponents}
@@ -104,7 +105,7 @@ export function Sidebar({
         pathname={pathname}
       />
     </SidebarSection>
-  )
+  ) : null
 
   const blocksSection = blocks.length > 0 ? (
     <SidebarSection icon={Blocks} title={t("sidebar.blocks")}>

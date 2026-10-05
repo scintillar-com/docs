@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { pageTitle } from "@shell/lib/branding"
 import { getAllComponents } from "@shell/lib/components-nav"
-import { registry } from "@shell/registry.config"
+import { registry } from "@shell/shell.config"
 import { ComponentPreview } from "@shell/components/component-preview"
 import { ComponentTabs } from "@shell/components/component-tabs"
 import { TranslatedText } from "@shell/components/translated-text"

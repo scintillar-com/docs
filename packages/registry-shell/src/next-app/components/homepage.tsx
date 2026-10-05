@@ -1,14 +1,17 @@
 /**
- * The shell's homepage rendered at `/`. Two states:
- *   - Registry has content → generic index listing components/blocks/docs.
- *   - Registry empty / absent → terse "no registry wired" placeholder
- *     pointing at the shell's documentation site.
+ * The shell's homepage rendered at `/`. Three states:
+ *   - Registry has components or blocks → generic index listing them.
+ *   - Docs but no components/blocks → documentation index (docs-only site).
+ *   - No config at all → terse "no registry wired" placeholder pointing at
+ *     the shell's documentation site.
  */
 import Link from "next/link"
 import { getAllComponents } from "@shell/lib/components-nav"
-import { getAllDocs } from "@shell/lib/docs"
+import { getAllDocs, type DocMeta } from "@shell/lib/docs"
 import type { HomePageProps } from "@shell/lib/registry-adapter"
-import { registry } from "@shell/registry.config"
+import { registry } from "@shell/shell.config"
+import { branding } from "@shell/lib/branding"
+import { TranslatedText } from "@shell/components/translated-text"
 
 export default function HomePage({ firstDocSlug }: HomePageProps) {
   // The placeholder is for shell-only mode (no registry-shell.config.ts
@@ -21,6 +24,10 @@ export default function HomePage({ firstDocSlug }: HomePageProps) {
   const docs = getAllDocs()
   const components = items.filter((c) => c.kind === "component")
   const blocks = items.filter((c) => c.kind === "block")
+
+  // A docs-only site (no components, no blocks) gets a documentation index
+  // instead of a "0 components" registry summary.
+  if (items.length === 0 && docs.length > 0) return <DocsHome docs={docs} />
 
   return (
     <main
@@ -86,6 +93,56 @@ export default function HomePage({ firstDocSlug }: HomePageProps) {
           </ul>
         </section>
       )}
+    </main>
+  )
+}
+
+/**
+ * Homepage of a docs-only site: the site's name and description from its
+ * config, a link to the first page, and every page with its description.
+ */
+function DocsHome({ docs }: { docs: DocMeta[] }) {
+  return (
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="outline-none max-w-3xl mx-auto px-4 md:px-8 py-12"
+    >
+      <section className="mb-10">
+        <h1 className="text-3xl font-bold">{branding.siteName}</h1>
+        {branding.description && (
+          <p className="mt-2 text-muted-foreground">{branding.description}</p>
+        )}
+        <Link
+          href={`/docs/${docs[0].slug}`}
+          className="mt-4 inline-block text-sm underline underline-offset-4"
+        >
+          <TranslatedText k="home.startReading" /> →
+        </Link>
+      </section>
+
+      <section>
+        <h2 className="text-xl font-semibold mb-4">
+          <TranslatedText k="home.pages" />
+        </h2>
+        <ul className="divide-y divide-border border-y border-border">
+          {docs.map((doc) => (
+            <li key={doc.slug}>
+              <Link
+                href={`/docs/${doc.slug}`}
+                className="block py-3 hover:bg-accent/40 transition-colors px-2 -mx-2 rounded-md"
+              >
+                <span className="font-medium">{doc.title}</span>
+                {doc.description && (
+                  <span className="block text-sm text-muted-foreground mt-0.5">
+                    {doc.description}
+                  </span>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   )
 }

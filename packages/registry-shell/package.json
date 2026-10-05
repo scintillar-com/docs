@@ -61,6 +61,7 @@
     "src/next-app/next-env.d.ts",
     "src/next-app/postcss.config.mjs",
     "src/next-app/registry.config.ts",
+    "src/next-app/shell.config.ts",
     "src/next-app/tsconfig.json",
     "src/next-app/user-aliases.d.ts",
     "!src/**/*.test.ts",

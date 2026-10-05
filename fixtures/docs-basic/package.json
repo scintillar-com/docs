@@ -1,0 +1,14 @@
+{
+  "name": "docs-basic",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "shell": "registry-shell dev",
+    "shell:build": "registry-shell build"
+  },
+  "devDependencies": {
+    "@sntlr/registry-shell": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

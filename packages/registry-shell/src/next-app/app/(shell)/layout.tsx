@@ -15,7 +15,7 @@ import { getAllDocs } from "@shell/lib/docs"
 import { getAllComponents, getCategories } from "@shell/lib/components-nav"
 import { getGithubStars } from "@shell/lib/github"
 import { branding } from "@shell/lib/branding"
-import { registry } from "@shell/registry.config"
+import { registry } from "@shell/shell.config"
 import { getShellDefaultLocale, getShellLocales } from "@shell/lib/locales"
 import "../globals.css"
 

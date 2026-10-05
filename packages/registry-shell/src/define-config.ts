@@ -201,6 +201,11 @@ export interface ShellConfig {
    * When `false` (default), docs live directly under `paths.docs` and
    * locale variants use the file-extension convention `{slug}.{locale}.mdx`
    * alongside the canonical `{slug}.mdx`.
+   *
+   * The `{slug}.{locale}.mdx` form works in both layouts. A file only counts
+   * as a translation when `{slug}.mdx` exists, so a page whose own name has a
+   * dot (`v1.2-notes.mdx`) keeps its URL. In multilocale mode a
+   * `{locale}/{slug}.mdx` file wins over `{slug}.{locale}.mdx`.
    */
   multilocale?: boolean
 

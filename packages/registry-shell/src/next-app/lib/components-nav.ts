@@ -1,4 +1,4 @@
-import { registry } from "@shell/registry.config"
+import { registry } from "@shell/shell.config"
 import type { CategoryMeta, ComponentMeta } from "./registry-adapter"
 
 export type { CategoryMeta, ComponentMeta }

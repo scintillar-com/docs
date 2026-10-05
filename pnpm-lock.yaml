@@ -20,6 +20,18 @@ importers:
         specifier: ^19.1.0
         version: 19.1.6(react@19.1.6)
 
+  fixtures/docs-basic:
+    devDependencies:
+      '@sntlr/registry-shell':
+        specifier: workspace:*
+        version: link:../../packages/registry-shell
+      react:
+        specifier: ^19.1.0
+        version: 19.1.6
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.1.6(react@19.1.6)
+
   packages/registry-shell:
     dependencies:
       '@tailwindcss/postcss':

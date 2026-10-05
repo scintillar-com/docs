@@ -19,8 +19,31 @@ const DEFAULT_BRANDING = {
   faviconIco: "/favicon.ico",
 } as const
 
-function pick(key: string, fallback: string): string {
-  const value = process.env[`NEXT_PUBLIC_SHELL_${key}`]
+// Next.js only inlines *literal* `process.env.NEXT_PUBLIC_*` references into
+// client bundles. A computed key (`process.env[`NEXT_PUBLIC_SHELL_${key}`]`)
+// worked on the server but read `undefined` in the browser, so client
+// components (the header) rendered the defaults and hydration failed (React
+// #418) on any site whose branding differed from them. Keep every key spelled
+// out here.
+const ENV: Record<string, string | undefined> = {
+  SITE_NAME: process.env.NEXT_PUBLIC_SHELL_SITE_NAME,
+  SHORT_NAME: process.env.NEXT_PUBLIC_SHELL_SHORT_NAME,
+  SITE_URL: process.env.NEXT_PUBLIC_SHELL_SITE_URL,
+  DESCRIPTION: process.env.NEXT_PUBLIC_SHELL_DESCRIPTION,
+  OG_IMAGE: process.env.NEXT_PUBLIC_SHELL_OG_IMAGE,
+  TWITTER_HANDLE: process.env.NEXT_PUBLIC_SHELL_TWITTER_HANDLE,
+  GITHUB_OWNER: process.env.NEXT_PUBLIC_SHELL_GITHUB_OWNER,
+  GITHUB_REPO: process.env.NEXT_PUBLIC_SHELL_GITHUB_REPO,
+  GITHUB_LABEL: process.env.NEXT_PUBLIC_SHELL_GITHUB_LABEL,
+  GITHUB_SHOW_STARS: process.env.NEXT_PUBLIC_SHELL_GITHUB_SHOW_STARS,
+  LOGO_ALT: process.env.NEXT_PUBLIC_SHELL_LOGO_ALT,
+  FAVICON_DARK: process.env.NEXT_PUBLIC_SHELL_FAVICON_DARK,
+  FAVICON_LIGHT: process.env.NEXT_PUBLIC_SHELL_FAVICON_LIGHT,
+  FAVICON_ICO: process.env.NEXT_PUBLIC_SHELL_FAVICON_ICO,
+}
+
+function pick(key: keyof typeof ENV & string, fallback: string): string {
+  const value = ENV[key]
   return value && value.length > 0 ? value : fallback
 }
 

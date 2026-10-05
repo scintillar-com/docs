@@ -5,7 +5,7 @@ import { ThemeOverridesScript } from "@shell/components/theme-overrides-script"
 import { ThemeOverridesSync } from "@shell/components/theme-overrides-sync"
 import { getShellThemePanel } from "@shell/lib/theme-panel"
 import { I18nProvider } from "@shell/lib/i18n"
-import { registry } from "@shell/registry.config"
+import { registry } from "@shell/shell.config"
 import { getShellDefaultLocale, getShellLocales } from "@shell/lib/locales"
 import "./preview.css"
 
