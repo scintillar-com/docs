@@ -98,6 +98,10 @@ export function createDefaultAdapter(resolved: ResolvedShellConfig) {
     return resolved.categories.map((c) => ({ label: c.label }))
   }
 
+  function getPreviewHeight(name: string): number | undefined {
+    return resolved.previewHeight[name]
+  }
+
   function getAllDocs(): DocMeta[] {
     if (!fs.existsSync(paths.docs)) return []
 
@@ -215,6 +219,7 @@ export function createDefaultAdapter(resolved: ResolvedShellConfig) {
   return {
     getAllComponents,
     getCategories,
+    getPreviewHeight,
     getAllDocs,
     getDocBySlug,
     getDocAllLocales,

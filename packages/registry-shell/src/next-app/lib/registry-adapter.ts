@@ -23,8 +23,10 @@ export interface ComponentMeta {
 
 /**
  * Sidebar category metadata exposed to the shell. The sidebar renders each
- * category as a collapsible sub-section (in the order the consumer declared
- * them in the shell config).
+ * category as a collapsible sub-section, in the order `getCategories()`
+ * returns them (for the default adapter: the insertion order of the config's
+ * `categories` object). Uncategorized components go into a synthesized
+ * "Base" group rendered after them.
  */
 export interface CategoryMeta {
   /** Display label, e.g. `"Web3"`. */
@@ -138,6 +140,12 @@ export interface RegistryAdapter {
    * renders a flat list (backward-compatible).
    */
   getCategories?(): CategoryMeta[]
+
+  /**
+   * Default inline-preview height in pixels for one component, from the
+   * config's `previewHeight`. `undefined` uses the shell's default.
+   */
+  getPreviewHeight?(name: string): number | undefined
 
   /** Full list of MDX docs with their frontmatter. */
   getAllDocs(): DocMeta[]

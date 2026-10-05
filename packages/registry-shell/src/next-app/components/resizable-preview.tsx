@@ -11,21 +11,31 @@ const DEFAULT_HEIGHT_MOBILE = 600
 const MIN_HEIGHT = 200
 const MAX_HEIGHT = 1000
 
-function getDefaultHeight(): number {
+function clampHeight(n: number): number {
+  return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, n))
+}
+
+/**
+ * Height used when the visitor hasn't resized a preview in this tab: the
+ * component's configured `previewHeight` when set (same on every viewport),
+ * otherwise the shell's desktop / mobile default.
+ */
+function getDefaultHeight(configured?: number): number {
+  if (configured !== undefined) return clampHeight(configured)
   if (typeof window === "undefined") return DEFAULT_HEIGHT_DESKTOP
   return window.matchMedia("(max-width: 767px)").matches
     ? DEFAULT_HEIGHT_MOBILE
     : DEFAULT_HEIGHT_DESKTOP
 }
 
-function getStoredHeight(): number {
-  if (typeof window === "undefined") return DEFAULT_HEIGHT_DESKTOP
+function getStoredHeight(configured?: number): number {
+  if (typeof window === "undefined") return getDefaultHeight(configured)
   const stored = sessionStorage.getItem(STORAGE_KEY)
   if (stored) {
     const n = Number(stored)
-    if (!isNaN(n)) return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, n))
+    if (!isNaN(n)) return clampHeight(n)
   }
-  return getDefaultHeight()
+  return getDefaultHeight(configured)
 }
 
 function getStoredFullscreen(): boolean {
@@ -33,8 +43,18 @@ function getStoredFullscreen(): boolean {
   return sessionStorage.getItem(FULLSCREEN_STORAGE_KEY) === "true"
 }
 
-export function ResizablePreview({ children }: { children: React.ReactNode }) {
-  const [height, setHeight] = useState(getStoredHeight)
+export function ResizablePreview({
+  children,
+  defaultHeight,
+}: {
+  children: React.ReactNode
+  /**
+   * Height in pixels when the visitor hasn't resized a preview in this tab
+   * (from the config's `previewHeight`). Clamped to the resize range.
+   */
+  defaultHeight?: number
+}) {
+  const [height, setHeight] = useState(() => getStoredHeight(defaultHeight))
   // Tracked in state (not just a ref) so we can flip a CSS class that
   // disables iframe pointer events while dragging — without it, the
   // cursor crossing into a child iframe interrupts the document-level
@@ -49,11 +69,16 @@ export function ResizablePreview({ children }: { children: React.ReactNode }) {
   // within their bounded box.
   const [isFullscreen, setIsFullscreen] = useState(getStoredFullscreen)
   const dragging = useRef(false)
+  // Set once the visitor drags the handle. Only a height they chose is
+  // persisted, so a component's configured `previewHeight` isn't shadowed
+  // by the default height of the previously visited component.
+  const userResized = useRef(false)
   const startY = useRef(0)
   const startH = useRef(0)
   const { setCollapsed } = useMobileSidebar()
 
   useEffect(() => {
+    if (!userResized.current) return
     sessionStorage.setItem(STORAGE_KEY, String(height))
   }, [height])
 
@@ -115,6 +140,7 @@ export function ResizablePreview({ children }: { children: React.ReactNode }) {
 
     function onMouseMove(ev: MouseEvent) {
       if (!dragging.current) return
+      userResized.current = true
       const newH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH.current + (ev.clientY - startY.current)))
       setHeight(newH)
     }
@@ -142,6 +168,7 @@ export function ResizablePreview({ children }: { children: React.ReactNode }) {
     function onTouchMove(ev: TouchEvent) {
       if (!dragging.current || ev.touches.length !== 1) return
       ev.preventDefault()
+      userResized.current = true
       const newH = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH.current + (ev.touches[0].clientY - startY.current)))
       setHeight(newH)
     }
