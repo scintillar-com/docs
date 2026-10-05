@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { pageTitle } from "@shell/lib/branding"
 import { getAllDocs, getDocBySlug, getDocAllLocales } from "@shell/lib/docs"
 import { DocsToc } from "@shell/components/docs-toc"
+import { HashScroll } from "@shell/components/hash-scroll"
 import { LocalizedMdx } from "@shell/components/localized-mdx"
 
 // Catch-all: nested pages (`guides/advanced/caching`) and flat ones (`intro`)
@@ -43,6 +44,7 @@ export default async function DocPage({
         className="prose prose-zinc dark:prose-invert flex-1 min-w-0 xl:max-w-225"
       >
         <LocalizedMdx locales={locales} />
+        <HashScroll />
       </article>
       {/* TOC column — space always reserved at xl+ to avoid layout shift when
           headings change; inner element hidden below xl since there's no room. */}

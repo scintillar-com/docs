@@ -1,13 +1,20 @@
 /**
- * Pre-build generator: writes `public/api/search-index.json` into the
- * user's public tree. Replaces the former `/api/search-index` route
- * handler — the shell's static-export mode can't serve dynamic route
- * handlers, so we bake the search index at build time instead.
+ * Pre-build generator: writes the search index into the shell's public
+ * tree, which the header's search dialog fetches. A static export has no
+ * server to answer a search route, so the index is baked at build time.
  *
- * The generator runs in a child `tsx` process so the shell's own build
- * pipeline (which ships as compiled `.js`) can invoke user-registry-side
- * .ts files (docs loaders, adapters) without the user's `node_modules/`
- * needing to be on our resolution path.
+ * Indexed by heading, not by page: each page gets a record for its opening
+ * and one per H2–H4 with the prose under it, linking to the heading's
+ * anchor (see `pageSearchRecords`), so a search for words in a paragraph
+ * lands on that paragraph. Components and blocks get one record each.
+ *
+ * One file per locale: `api/search-index.json` for the default locale and
+ * `api/search-index.<locale>.json` for each other one, with every page in
+ * that locale's version (the default-locale text where a page isn't
+ * translated, which is what the page itself shows).
+ *
+ * The config and adapter are loaded through jiti so the same file-walking
+ * code the Next app uses runs here, from the compiled CLI.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -15,29 +22,58 @@ import { createJiti } from "jiti"
 import type { LoadedConfig } from "./shared.js"
 import type { ResolvedShellConfig } from "../config-loader.js"
 import { writeFileFresh } from "./fs-safe.js"
+import { pageSearchRecords, type SearchRecord } from "../content/index.js"
 
-interface SearchItem {
-  label: string
-  href: string
-  group: string
+interface IndexAdapter {
+  getAllComponents: () => { name: string; label: string; kind: "component" | "block" }[]
+  getAllDocs: () => { slug: string; section?: string }[]
+  getDocBySlug: (
+    slug: string,
+    locale?: string,
+  ) => { meta: { title: string; description: string }; content: string } | null
+}
+
+/** Records of every page in `locale`, then every component. */
+export function buildSearchRecords(adapter: IndexAdapter, locale?: string): SearchRecord[] {
+  const records: SearchRecord[] = []
+  for (const { slug, section } of adapter.getAllDocs()) {
+    const doc = adapter.getDocBySlug(slug, locale)
+    if (!doc) continue
+    records.push(
+      ...pageSearchRecords({
+        content: doc.content,
+        title: doc.meta.title,
+        description: doc.meta.description,
+        href: `/docs/${slug}/`,
+        // The header tab the page is under (see useActiveSection).
+        group: section ? `docs:${section}` : "docs",
+      }),
+    )
+  }
+  for (const comp of adapter.getAllComponents()) {
+    records.push({
+      label: comp.label,
+      page: comp.label,
+      href: `/components/${comp.name}/`,
+      group: comp.kind === "block" ? "blocks" : "components",
+      kind: "component",
+      text: "",
+    })
+  }
+  return records
 }
 
 /**
- * Writes the search index JSON into `targetPublicDir/api/search-index.json`.
- * `targetPublicDir` is expected to be the shell's bundled `public/` dir
- * (inside node_modules). The build pipeline overlays the user's public/
- * onto this dir so the merged tree is what `next build` sees.
+ * Writes the index files into `targetPublicDir/api/`. `targetPublicDir` is
+ * the shell's bundled `public/` dir; the build overlays the user's
+ * `public/` onto it, so the merged tree is what `next build` sees.
  */
 export async function generateSearchIndex(
   loaded: LoadedConfig,
   targetPublicDir: string,
 ): Promise<void> {
-  const { config } = loaded
-  void config
+  void loaded
 
-  // Load the shell's registry-adapter + config-loader via jiti so we can
-  // evaluate the same filesystem-walking logic the server used to do at
-  // request time.
   const jiti = createJiti(import.meta.url, { interopDefault: true })
   const resolved: ResolvedShellConfig | null = (
     jiti("../config-loader.js") as {
@@ -51,33 +87,29 @@ export async function generateSearchIndex(
   }
 
   const { createDefaultAdapter } = jiti("../adapter/default.js") as {
-    createDefaultAdapter: (r: ResolvedShellConfig) => {
-      getAllComponents: () => { name: string; label: string }[]
-      getAllDocs: () => { slug: string; title: string }[]
-    }
+    createDefaultAdapter: (r: ResolvedShellConfig) => IndexAdapter
   }
   const adapter = createDefaultAdapter(resolved)
 
-  const docs: SearchItem[] = adapter.getAllDocs().map((doc) => ({
-    label: doc.title,
-    href: `/docs/${doc.slug}/`,
-    group: "Documentation",
-  }))
-
-  const components: SearchItem[] = adapter.getAllComponents().map((comp) => ({
-    label: comp.label,
-    href: `/components/${comp.name}/`,
-    group: "Components",
-  }))
-
-  const items = [...docs, ...components]
-
   const outDir = path.join(targetPublicDir, "api")
   fs.mkdirSync(outDir, { recursive: true })
-  const outPath = path.join(outDir, "search-index.json")
-  writeFileFresh(outPath, JSON.stringify(items))
+  // Drop locale files from an earlier build: a locale removed from the
+  // config would otherwise keep a stale index.
+  for (const file of fs.readdirSync(outDir)) {
+    if (/^search-index\..+\.json$/.test(file)) fs.rmSync(path.join(outDir, file), { force: true })
+  }
 
-  console.log(
-    `[docs-shell] Wrote search index (${items.length} items) → ${outPath}`,
-  )
+  const defaultLocale = resolved.defaultLocale || "en"
+  const write = (file: string, records: SearchRecord[]) => {
+    const outPath = path.join(outDir, file)
+    writeFileFresh(outPath, JSON.stringify(records))
+    const kb = (fs.statSync(outPath).size / 1024).toFixed(0)
+    console.log(`[docs-shell] Wrote search index (${records.length} records, ${kb} KB) → ${outPath}`)
+  }
+
+  write("search-index.json", buildSearchRecords(adapter, defaultLocale))
+  for (const locale of resolved.locales) {
+    if (locale === defaultLocale) continue
+    write(`search-index.${locale}.json`, buildSearchRecords(adapter, locale))
+  }
 }

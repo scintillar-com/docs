@@ -98,6 +98,82 @@ test.describe("nested docs", () => {
     expect(await width()).toBe(520)
   })
 
+  test.describe("search", () => {
+    const openSearch = async (page: Page) => {
+      await page.keyboard.press("Control+k")
+      await expect(page.locator("[cmdk-input]")).toBeVisible()
+    }
+    const results = (page: Page) => page.locator("[cmdk-item]")
+
+    test("indexes headings, deep-linked, per locale", async ({ request }) => {
+      const en = (await (await request.get("/api/search-index.json")).json()) as Array<Record<string, string>>
+      expect(en).toContainEqual(
+        expect.objectContaining({
+          label: "Install docs-shell",
+          page: "Getting started",
+          href: "/docs/guides/start/#install-docs-shell",
+          group: "docs:guides",
+          kind: "heading",
+        }),
+      )
+      expect(en).toContainEqual(expect.objectContaining({ href: "/docs/welcome/", group: "docs", kind: "page" }))
+      // A `# comment` inside a code sample is not a heading.
+      expect(en.some((r) => r.label.includes("not a heading"))).toBe(false)
+      const fr = (await (await request.get("/api/search-index.fr.json")).json()) as Array<Record<string, string>>
+      expect(fr).toContainEqual(expect.objectContaining({ label: "Invalidation", page: "Mise en cache" }))
+    })
+
+    test("a heading with inline code gets its anchor", async ({ page }) => {
+      await page.goto("/docs/guides/start/")
+      await expect(page.locator("h2#install-docs-shell")).toHaveText(/Install docs-shell/)
+    })
+
+    test("a link to a section opens on that section", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 500 })
+      await page.goto("/docs/guides/start/#theme-tokens")
+      await expect(page.locator("h3#theme-tokens")).toBeInViewport()
+    })
+
+    test("a word in a paragraph finds its heading and lands on it", async ({ page }) => {
+      await page.goto("/docs/welcome/")
+      await openSearch(page)
+      await page.locator("[cmdk-input]").fill("chartreuse")
+      await expect(results(page)).toHaveCount(1)
+      await expect(results(page).first()).toContainText("Theme tokens")
+      await expect(results(page).first()).toContainText("Getting started")
+      await expect(results(page).first()).toContainText("chartreuse primary")
+      await results(page).first().click()
+      await expect(page).toHaveURL(/\/docs\/guides\/start\/#theme-tokens$/)
+      await expect(page.locator("h3#theme-tokens")).toBeInViewport()
+    })
+
+    test("searches the active language", async ({ page }) => {
+      await page.goto("/docs/welcome/")
+      await openSearch(page)
+      await page.locator("[cmdk-input]").fill("purge")
+      await expect(page.getByText("No results found.")).toBeVisible()
+      await page.keyboard.press("Escape")
+      await page.getByRole("button", { name: "Cycle language" }).click()
+      await openSearch(page)
+      await page.locator("[cmdk-input]").fill("purge")
+      await expect(results(page).first()).toContainText("Invalidation")
+      await expect(results(page).first()).toContainText("Mise en cache")
+    })
+
+    test("filters by section once results span several", async ({ page }) => {
+      await page.goto("/")
+      await openSearch(page)
+      await page.locator("[cmdk-input]").fill("page")
+      const chips = page.getByRole("group", { name: "Filter results" })
+      await expect(chips.getByRole("button", { name: /Documentation/ })).toBeVisible()
+      await chips.getByRole("button", { name: /User guide/ }).click()
+      await expect(page.locator("[cmdk-group-heading]")).toHaveText(["User guide"])
+      // The active chip toggles back to everything.
+      await chips.getByRole("button", { name: /User guide/ }).click()
+      await expect(page.locator("[cmdk-group-heading]")).toHaveCount(2)
+    })
+  })
+
   test("no horizontal scrolling", async ({ page, isMobile }) => {
     for (const url of ["/", "/docs/guides/", "/docs/guides/advanced/caching/"]) {
       await page.goto(url)
@@ -107,6 +183,14 @@ test.describe("nested docs", () => {
       await page.getByRole("button", { name: "Toggle menu" }).click()
       await expect(page.getByRole("link", { name: "Deploying" }).first()).toBeVisible()
       expect(await horizontalOverflow(page), "open mobile menu").toBeLessThanOrEqual(0)
+      await page.getByRole("button", { name: "Toggle menu" }).click()
+      // The open search, with section chips and long excerpts.
+      await page.getByRole("button", { name: "Search", exact: true }).click()
+      await page.locator("[cmdk-input]").fill("the")
+      await expect(page.locator("[cmdk-item]").first()).toBeVisible()
+      expect(await horizontalOverflow(page), "open search").toBeLessThanOrEqual(0)
+      const dialog = await page.getByRole("dialog").boundingBox()
+      expect(dialog!.width, "search dialog width").toBeLessThanOrEqual(page.viewportSize()!.width)
     }
   })
 })

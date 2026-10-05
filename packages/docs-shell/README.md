@@ -297,6 +297,68 @@ Icons: `BookOpen` (default), `Boxes`, `Code2`, `Cog`, `FileText`,
 `GraduationCap`, `Layers`, `LifeBuoy`, `Lightbulb`, `Rocket`, `Scale`,
 `ShieldCheck`, `Terminal`, `Wrench`.
 
+## Search
+
+The header's search (`Ctrl`/`⌘` + `K`) is built with the site, so it
+works on a static host with no server. It finds words in the text, not
+only in titles: each page is indexed by heading (one entry for its opening,
+one per `##`, `###` and `####` heading with the text under it), and a
+result opens the page at that heading. Components and blocks are listed by
+name.
+
+Results show the heading, its page and a few words around the match, and
+can be narrowed to one section of the site once they span several. Each
+language has its own index (`api/search-index.json` for the default
+locale, `api/search-index.<locale>.json` for the others), and the search
+uses the one of the active language. Nothing to configure.
+
+## Preparing content from another repository
+
+When a site's pages are written in another repository (Markdown next to
+the code it documents, say), a sync script copies them into
+`content/docs` before the build. `@sntlr/docs-shell/content` has the
+generic parts of such a script:
+
+```ts
+import {
+  escapeMdx, rewriteLinks, docsRouteFor, splitFrontmatter,
+  formatFrontmatter, firstHeading, firstParagraph, copyAssets,
+} from "@sntlr/docs-shell/content"
+
+const mappings = [
+  { from: "docs/guides", to: "guides" },          // repo folder → /docs/guides
+  { from: "docs/guides/api", to: "reference" },   // the longest match wins
+]
+
+const { data, body } = splitFrontmatter(source)
+let mdx = escapeMdx(body)                         // plain Markdown → valid MDX
+mdx = rewriteLinks(mdx, "docs/guides", (path, hash) =>
+  path.endsWith(".png")
+    ? `/docs-assets/${path.split("/").pop()}`
+    : (docsRouteFor(path, mappings) ?? `https://github.com/org/repo/blob/${ref}/${path}`) + hash,
+)
+const page =
+  formatFrontmatter({
+    title: data.title ?? firstHeading(body) ?? "Untitled",
+    description: data.description ?? firstParagraph(body),
+  }) + mdx
+
+copyAssets("../repo/docs/assets", "public/docs-assets")
+```
+
+- `escapeMdx`: escapes `<` and `{` outside code (MDX would read them as
+  JSX and expressions) and turns `<https://…>` autolinks into links.
+- `rewriteLinks`: passes every relative link (resolved against the file's
+  folder, repo-relative) to your function; code and absolute URLs are left
+  alone.
+- `docsRouteFor`: a repo path's URL on the site, by the longest matching
+  mapping; `_index.md` / `index.md` go to their folder's URL.
+- `splitFrontmatter`, `formatFrontmatter`, `firstHeading`,
+  `firstParagraph`: read what a page has, derive what it lacks.
+- `copyAssets`: copies images into `public/` (flattened by default).
+- `slugify`, `flattenMarkdown`, `splitSections`, `pageSearchRecords`: the
+  heading anchors and search records the shell itself uses.
+
 ## Advanced: custom adapters
 
 For non-convention registries (database-backed metadata, non-MDX docs, etc.)

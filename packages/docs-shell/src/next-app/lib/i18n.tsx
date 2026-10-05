@@ -32,9 +32,12 @@ const translations = {
 
     // Search
     "search.placeholder": "Search documentation and components...",
+    "search.placeholderDocs": "Search the documentation...",
     "search.noResults": "No results found.",
     "search.groupDocs": "Documentation",
     "search.groupComponents": "Components",
+    "search.filter": "Filter results",
+    "search.all": "All",
 
     // Docs-only homepage
     "home.startReading": "Start reading",
@@ -179,9 +182,12 @@ const translations = {
 
     // Search
     "search.placeholder": "Rechercher dans la documentation et les composants...",
+    "search.placeholderDocs": "Rechercher dans la documentation...",
     "search.noResults": "Aucun résultat trouvé.",
     "search.groupDocs": "Documentation",
     "search.groupComponents": "Composants",
+    "search.filter": "Filtrer les résultats",
+    "search.all": "Tout",
 
     // Page d'accueil (documentation seule)
     "home.startReading": "Commencer la lecture",
@@ -322,6 +328,8 @@ type Dictionary = Record<string, string>
 
 interface I18nContextValue {
   locale: Locale
+  /** The site's default locale (from the config), whatever is active. */
+  defaultLocale: Locale
   setLocale: (locale: Locale) => void
   t: (key: TranslationKey | (string & {})) => string
 }
@@ -394,7 +402,7 @@ export function I18nProvider({
   )
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale: changeLocale, t }}>
+    <I18nContext.Provider value={{ locale, defaultLocale, setLocale: changeLocale, t }}>
       {children}
     </I18nContext.Provider>
   )
@@ -403,7 +411,7 @@ export function I18nProvider({
 export function useLocale() {
   const ctx = useContext(I18nContext)
   if (!ctx) throw new Error("useLocale must be used within I18nProvider")
-  return { locale: ctx.locale, setLocale: ctx.setLocale }
+  return { locale: ctx.locale, defaultLocale: ctx.defaultLocale, setLocale: ctx.setLocale }
 }
 
 export function useTranslations() {

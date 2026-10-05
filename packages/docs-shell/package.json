@@ -38,12 +38,17 @@
       "default": "./dist/index.js"
     },
     "./cli": "./dist/cli/index.js",
+    "./content": {
+      "types": "./dist/content/index.d.ts",
+      "default": "./dist/content/index.js"
+    },
     "./shell/*": "./src/next-app/*",
     "./package.json": "./package.json"
   },
   "files": [
     "dist/adapter",
     "dist/cli",
+    "dist/content",
     "dist/config-loader.js",
     "dist/config-loader.d.ts",
     "dist/define-config.js",
@@ -52,6 +57,7 @@
     "dist/index.d.ts",
     "src/adapter",
     "src/cli",
+    "src/content",
     "src/config-loader.ts",
     "src/define-config.ts",
     "src/index.ts",

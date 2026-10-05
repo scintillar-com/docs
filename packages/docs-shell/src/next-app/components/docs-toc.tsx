@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useTranslations } from "@shell/lib/i18n"
+import { slugify } from "../../content/markdown"
 
 interface TocEntry {
   id: string
@@ -21,12 +22,7 @@ export function DocsToc() {
     const headings = article.querySelectorAll<HTMLHeadingElement>("h1, h2, h3")
     const items: TocEntry[] = []
     headings.forEach((h) => {
-      if (!h.id) {
-        h.id = h.textContent
-          ?.toLowerCase()
-          .replace(/[^\w\s-]/g, "")
-          .replace(/\s+/g, "-") ?? ""
-      }
+      if (!h.id) h.id = slugify(h.textContent ?? "")
       if (!h.id) return
       const level = parseInt(h.tagName[1])
       items.push({ id: h.id, text: h.textContent ?? "", level })

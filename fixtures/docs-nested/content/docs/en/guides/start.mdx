@@ -6,3 +6,31 @@ order: 1
 # Getting started
 
 The first page of the guide.
+
+## Install `docs-shell`
+
+Add the package to your project. The lockfile pins every dependency.
+
+```sh
+# not a heading: a comment in a shell sample
+pnpm add -D @sntlr/docs-shell
+```
+
+## Configure
+
+Write a config file at the root of the project. It names the site, lists the
+locales and declares the sections.
+
+Everything else has a default, so a first config is a few lines long.
+
+Paths, ports and modules can all be changed later, one option at a time.
+
+The dev server reloads when the config changes.
+
+Large sites usually split their pages into sections early.
+
+Small sites can stay flat for a long time.
+
+### Theme tokens
+
+Colours come from CSS variables; set a chartreuse primary to make it yours.
