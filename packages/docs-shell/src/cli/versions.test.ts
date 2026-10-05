@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   buildManifest,
+  filterMinVersion,
   compareVersions,
   parseTagListing,
   parseVersionFromTag,
@@ -171,6 +172,31 @@ describe("buildManifest", () => {
   })
 
   it("is empty with no tags", () => {
-    expect(buildManifest([])).toEqual({ latest: null, versions: [] })
+    expect(buildManifest([])).toEqual({ latest: null, versions: [], current: null })
+  })
+
+  it("names the site root and records the source repository when asked", () => {
+    const tag = { tag: "v1.0.0", version: "1.0.0", commit: "abc", date: "" }
+    const manifest = buildManifest([tag], { currentLabel: "develop", sourceRepo: "https://x/app.git" })
+    expect(manifest.current).toEqual({ label: "develop" })
+    expect(manifest.versions[0]?.source).toEqual({ repo: "https://x/app.git", ref: "v1.0.0", commit: "abc" })
+    expect(buildManifest([tag]).versions[0]).not.toHaveProperty("source")
+  })
+})
+
+describe("filterMinVersion", () => {
+  const tags = ["0.9.0", "1.0.0-rc.1", "1.0.0", "1.2.0"].map((version) => ({
+    tag: `v${version}`,
+    version,
+    commit: version,
+    date: "",
+  }))
+  it("keeps versions at or above the minimum", () => {
+    expect(filterMinVersion(tags, "1.0.0").map((t) => t.version)).toEqual(["1.0.0", "1.2.0"])
+    expect(filterMinVersion(tags, "v1.0.0-rc.1").map((t) => t.version)).toEqual(["1.0.0-rc.1", "1.0.0", "1.2.0"])
+    expect(filterMinVersion(tags)).toHaveLength(4)
+  })
+  it("rejects a minimum that isn't a version", () => {
+    expect(() => filterMinVersion(tags, "latest")).toThrow(/isn't a version/)
   })
 })

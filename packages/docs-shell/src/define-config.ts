@@ -148,8 +148,87 @@ export interface VersionsConfig {
    * reads the file as it was at that tag. When the file doesn't exist the
    * page and its nav link are left out. Default: `"CHANGELOG.md"`; `""`
    * disables the page.
+   *
+   * With `source`, the path is in the source repository: each snapshot
+   * shows the file as it was at its tag, and the site root shows it as it
+   * is on `source.ref`.
    */
   changelog?: string
+  /**
+   * Oldest version to publish (e.g. `"1.0.0"`): tags below it are left
+   * out. Default: every matching tag.
+   */
+  minVersion?: string
+  /**
+   * Take the versions from another repository's tags: for a docs site
+   * whose pages are written next to the code they document, and copied in
+   * by a sync script. See {@link VersionsSourceConfig}.
+   */
+  source?: VersionsSourceConfig
+  /**
+   * The site root (`/`). Name it with `label` when it isn't the latest
+   * release, e.g. a docs site built from a `develop` branch:
+   * `current: { label: "develop" }`. The version switcher then lists it
+   * under that name, it gets a notice pointing to the latest release, and
+   * snapshots' "latest" links go to the latest release instead of `/`.
+   */
+  current?: { label?: string }
+}
+
+/**
+ * Versions taken from another repository (`versions.source`). For each of
+ * its tags matching `versions.tags`, the build:
+ *
+ *   1. checks out this site as committed (its config, theme, sync script),
+ *      reusing the installed `node_modules`;
+ *   2. checks out the source repository at the tag;
+ *   3. runs `sync` in the site checkout, which copies the tag's pages into
+ *      the site (e.g. into `content/docs`);
+ *   4. builds that under `/v/<version>/`.
+ *
+ * The site root is built from the working tree as it is (pages synced from
+ * the source's main branch by your usual workflow), named by
+ * `versions.current.label`.
+ *
+ * Snapshots are cached per source commit, site files and shell version:
+ * a moved tag, a changed theme or sync script, or a shell upgrade rebuilds
+ * them; new pages synced into the site root don't.
+ */
+export interface VersionsSourceConfig {
+  /**
+   * The source repository: a git URL (`https://github.com/org/app.git`) or
+   * a local path to a clone, relative to the config file. A URL is cloned
+   * (without file contents until needed) into the cache dir and fetched on
+   * each build.
+   */
+  repo: string
+  /**
+   * Command that copies a tag's pages into the site, run from the site
+   * checkout. `{sourceDir}` and `{siteDir}` are replaced with the (quoted)
+   * checkout paths; the environment also has `DOCS_SHELL_SOURCE_DIR`,
+   * `DOCS_SHELL_SITE_DIR`, `DOCS_SHELL_SOURCE_REF` (the tag),
+   * `DOCS_SHELL_SOURCE_COMMIT` and `DOCS_SHELL_VERSION`.
+   *
+   * Example: `"node scripts/sync-docs.mjs --source {sourceDir} --clean"`.
+   */
+  sync: string
+  /**
+   * What the sync writes, relative to the config file: left out of the
+   * snapshot cache key, so syncing new pages into the site root doesn't
+   * rebuild every version. Default: the docs folder (`paths.docs`).
+   */
+  syncOutputs?: string[]
+  /**
+   * Environment variable holding a token for a private repository over
+   * HTTPS (a GitHub token with read access, for instance). It's passed to
+   * git in a header, never written to disk or to the command line.
+   */
+  tokenEnv?: string
+  /**
+   * Branch or ref of the source the site root corresponds to, for its
+   * changelog. Default: the source's default branch (`HEAD`).
+   */
+  ref?: string
 }
 
 /**

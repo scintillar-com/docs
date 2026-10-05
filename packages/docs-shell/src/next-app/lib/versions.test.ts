@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { withBasePath } from "./base-path"
-import { switchTargets, versionRoot } from "./versions"
+import { latestReleaseHref, switchTargets, versionRoot, type VersionsManifest } from "./versions"
 
 describe("withBasePath", () => {
   it("is the identity without a base path (regular builds)", () => {
@@ -35,5 +35,28 @@ describe("switchTargets", () => {
 
   it("goes straight to the home page from the home page", () => {
     expect(switchTargets("1.0.0", "/")).toEqual({ candidate: null, home: "/v/1.0.0/" })
+  })
+})
+
+describe("latestReleaseHref", () => {
+  const entry = (version: string, isLatest: boolean) => ({
+    version,
+    tag: `v${version}`,
+    commit: version,
+    date: "",
+    isLatest,
+    path: `/v/${version}/`,
+    registry: `/r/v${version}/`,
+  })
+  const versions = [entry("1.1.0", true), entry("1.0.0", false)]
+
+  it("is the site root when the root is the latest release", () => {
+    const manifest: VersionsManifest = { latest: "1.1.0", versions }
+    expect(latestReleaseHref(manifest)).toBe("/")
+    expect(latestReleaseHref({ ...manifest, current: null })).toBe("/")
+  })
+
+  it("is the latest release's snapshot when the root is labelled (e.g. develop)", () => {
+    expect(latestReleaseHref({ latest: "1.1.0", versions, current: { label: "develop" } })).toBe("/v/1.1.0/")
   })
 })

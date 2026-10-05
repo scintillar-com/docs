@@ -20,7 +20,8 @@
  *
  *   1. `git worktree add --detach <tmp> <commit>` materialises the tag
  *      outside the project (no node_modules above it, nothing mutated in
- *      the user's checkout besides git's worktree bookkeeping, pruned after).
+ *      the user's checkout besides git's worktree bookkeeping, removed
+ *      after with `git worktree remove`).
  *   2. Install the tag's dependencies (lockfile-detected, or
  *      `versions.installCommand`).
  *   3. Build its registry JSON (`versions.registryBuildCommand`, default
@@ -34,6 +35,12 @@
  * them; upgrading the shell rebuilds every snapshot once, so frozen
  * versions pick up shell fixes and features (their CONTENT stays frozen).
  *
+ * With `versions.source`, the tags are another repository's and each
+ * snapshot is the committed SITE (config, theme, sync script; installed
+ * node_modules linked in) with that tag's pages copied in by the site's
+ * `sync` command (see `ensureSourceSnapshot` and version-source.ts). Its
+ * cache key adds a hash of the site's files, minus what the sync writes.
+ *
  * Because snapshots are cached, nothing about the version list is baked
  * into a build: the switcher and banner fetch `/versions.json` at runtime,
  * so an old cached snapshot still knows about releases made after it.
@@ -46,10 +53,22 @@ import { fileURLToPath } from "node:url"
 import { CONFIG_FILE_CANDIDATES, loadUserConfigFile, resolveModules, type LoadedConfig } from "./shared.js"
 import type { BuildSite } from "./build.js"
 import { writeChangeIndexes, type RegistrySource } from "./version-changes.js"
+import type { VersionsSourceConfig } from "../define-config.js"
+import {
+  expandSyncCommand,
+  linkNodeModules,
+  prepareSource,
+  readFileAtCommit,
+  resolveRef,
+  siteInputsHash,
+  unlinkNodeModules,
+  type PreparedSource,
+} from "./version-source.js"
 import {
   DEFAULT_TAG_GLOB,
   VERSIONS_MANIFEST_FILE,
   buildManifest,
+  filterMinVersion,
   listVersionTags,
   versionBasePath,
   type VersionTag,
@@ -81,6 +100,8 @@ interface CacheMeta {
   builtAt: string
   /** False when the tag had no registry JSON to copy. */
   hasRegistry: boolean
+  /** With `versions.source`: hash of the committed site files that built it. */
+  siteHash?: string
 }
 
 const log = (msg: string) => console.log(`[docs-shell] ${msg}`)
@@ -98,12 +119,24 @@ export async function runVersionedBuild(
   // Discover tags before the (slow) latest build so git problems fail fast.
   const repoRoot = gitTopLevel(loaded.root)
   const registryRoot = fs.realpathSync(loaded.root)
-  const { tags, skipped } = listVersionTags(loaded.root, glob)
+  const sourceConfig = versionsConfig.source
+  const source = sourceConfig ? prepareSourceFor(loaded, sourceConfig, cacheDir) : null
+  const listing = listVersionTags(source?.gitDir ?? loaded.root, glob)
+  const tags = filterMinVersion(listing.tags, versionsConfig.minVersion)
+  const { skipped } = listing
   if (skipped.length > 0) {
     log(`versions: ignoring tags without a usable semver: ${skipped.join(", ")}`)
   }
+  if (source && sourceConfig) {
+    log(`versions: taking versions from ${sourceConfig.repo}`)
+    const dirty = git(repoRoot, ["status", "--porcelain", "--", path.relative(repoRoot, registryRoot) || "."]).trim()
+    if (dirty) {
+      log("versions: snapshots are built from the committed site; its uncommitted changes aren't in them.")
+    }
+  }
   if (tags.length === 0) {
-    const shallow = git(repoRoot, ["rev-parse", "--is-shallow-repository"]).trim() === "true"
+    const shallow =
+      !source && git(repoRoot, ["rev-parse", "--is-shallow-repository"]).trim() === "true"
     log(
       `versions: no tag matches "${glob}"` +
         (shallow
@@ -114,19 +147,38 @@ export async function runVersionedBuild(
     log(`versions: ${tags.map((t) => t.tag).join(", ")}`)
   }
 
-  // 1. Latest, at the site root.
-  await buildSite(loaded, {
-    args,
-    outDir,
-    versions: true,
-    ...changelogOption(loaded.root, versionsConfig.changelog),
-  })
+  // 1. Latest, at the site root. With a source, its changelog is the
+  // source's, as it is on `source.ref`.
+  const rootChangelog =
+    source && sourceConfig
+      ? sourceChangelogOption(
+          source,
+          resolveRef(source, sourceConfig.ref ?? "HEAD"),
+          versionsConfig.changelog,
+          path.join(cacheDir, "current-changelog.md"),
+        )
+      : changelogOption(loaded.root, versionsConfig.changelog)
+  await buildSite(loaded, { args, outDir, versions: true, ...rootChangelog })
 
   // 2. One frozen snapshot per tag (cache hit or fresh build).
   const published: VersionTag[] = []
   const registryDirs = new Map<string, string>()
+  const siteHash =
+    source && sourceConfig
+      ? siteInputsHash(
+          repoRoot,
+          path.relative(repoRoot, registryRoot),
+          // What the sync writes, plus build output and this cache, in case
+          // they're committed.
+          [
+            ...(sourceConfig.syncOutputs ?? [loaded.config.paths?.docs ?? "content/docs"]),
+            "out",
+            cacheDir,
+          ].map((p) => path.relative(registryRoot, path.resolve(registryRoot, p))),
+        )
+      : ""
   for (const tag of tags) {
-    const entryDir = await ensureSnapshot({
+    const common = {
       tag,
       loaded,
       registryRoot,
@@ -136,7 +188,11 @@ export async function runVersionedBuild(
       args,
       buildSite,
       tmpRoot: options.tmpRoot ?? os.tmpdir(),
-    })
+    }
+    const entryDir =
+      source && sourceConfig
+        ? await ensureSourceSnapshot({ ...common, source, sourceConfig, siteHash })
+        : await ensureSnapshot(common)
     if (!entryDir) continue
     fs.cpSync(path.join(entryDir, "site"), path.join(outDir, "v", tag.version), {
       recursive: true,
@@ -150,7 +206,10 @@ export async function runVersionedBuild(
   }
 
   // 3. Manifest.
-  const manifest = buildManifest(published)
+  const manifest = buildManifest(published, {
+    currentLabel: versionsConfig.current?.label,
+    sourceRepo: sourceConfig?.repo,
+  })
   fs.writeFileSync(
     path.join(outDir, VERSIONS_MANIFEST_FILE),
     JSON.stringify(manifest, null, 2) + "\n",
@@ -164,7 +223,8 @@ export async function runVersionedBuild(
 
   // 4. Per-item change history, oldest release first, the latest site last.
   // Only for registries: it feeds the component pages' Changes tab.
-  if (!resolveModules(loaded).includes("registry")) return manifest
+  // Versions from a source repository are docs, with no registry JSON.
+  if (source || !resolveModules(loaded).includes("registry")) return manifest
   const sources: RegistrySource[] = [...published]
     .reverse()
     .filter((t) => registryDirs.has(t.version))
@@ -191,6 +251,137 @@ export function changelogOption(
   if (!rel) return {}
   const abs = path.resolve(root, rel)
   return fs.existsSync(abs) && fs.statSync(abs).isFile() ? { changelog: abs } : {}
+}
+
+/** Validate `versions.source` and make its repository available. */
+function prepareSourceFor(
+  loaded: LoadedConfig,
+  config: VersionsSourceConfig,
+  cacheDir: string,
+): PreparedSource {
+  if (!config.repo || !config.sync) {
+    throw new Error("[docs-shell] versions.source needs both `repo` and `sync` (the command copying a tag's pages in).")
+  }
+  return prepareSource(config.repo, loaded.root, cacheDir, config.tokenEnv)
+}
+
+/**
+ * `{ changelog }` for a page built from the source at `commit`: the
+ * configured (or default) changelog path read from the source, written to
+ * `dest`. Empty when disabled, when `commit` is null or the file isn't
+ * there at that commit.
+ */
+export function sourceChangelogOption(
+  source: PreparedSource,
+  commit: string | null,
+  configured: string | undefined,
+  dest: string,
+): { changelog?: string } {
+  const rel = configured ?? DEFAULT_CHANGELOG
+  if (!rel || !commit) return {}
+  const text = readFileAtCommit(source, commit, rel)
+  if (text === null) return {}
+  fs.mkdirSync(path.dirname(dest), { recursive: true })
+  fs.rmSync(dest, { force: true })
+  fs.writeFileSync(dest, text, "utf-8")
+  return { changelog: dest }
+}
+
+interface EnsureSourceSnapshotArgs extends EnsureSnapshotArgs {
+  source: PreparedSource
+  sourceConfig: VersionsSourceConfig
+  /** {@link siteInputsHash} of the committed site. */
+  siteHash: string
+}
+
+/**
+ * Like {@link ensureSnapshot}, for a tag of the source repository: the
+ * committed site, with the tag's pages synced in, built under
+ * `/v/<version>`. Cached per source commit, site files and shell version.
+ */
+async function ensureSourceSnapshot(a: EnsureSourceSnapshotArgs): Promise<string | null> {
+  const { tag, repoRoot, cacheDir, shellVersion, source, sourceConfig, siteHash } = a
+  const entryDir = path.join(cacheDir, `${tag.version}-${tag.commit.slice(0, 12)}`)
+  const meta = readCacheMeta(entryDir)
+  if (
+    meta &&
+    meta.commit === tag.commit &&
+    meta.shellVersion === shellVersion &&
+    meta.siteHash === siteHash
+  ) {
+    log(`versions: ${tag.tag} — cached (${tag.commit.slice(0, 7)})`)
+    return entryDir
+  }
+
+  const relRoot = path.relative(repoRoot, a.registryRoot)
+  const configName = findConfigAtCommit(repoRoot, "HEAD", relRoot)
+  if (!configName) {
+    throw new Error(
+      "[docs-shell] versions.source: the site's config file isn't committed; snapshots are built from the committed site.",
+    )
+  }
+
+  log(`versions: ${tag.tag} — building snapshot from ${sourceConfig.repo} at ${tag.commit.slice(0, 7)}`)
+  const workParent = fs.mkdtempSync(path.join(a.tmpRoot, "docs-shell-"))
+  const siteCheckout = path.join(workParent, "site")
+  const sourceCheckout = path.join(workParent, "source")
+  const siteRoot = path.join(siteCheckout, relRoot)
+  const checkouts: Array<{ repo: string; dir: string; env?: NodeJS.ProcessEnv }> = []
+  try {
+    git(repoRoot, ["worktree", "add", "--detach", siteCheckout, "HEAD"])
+    checkouts.push({ repo: repoRoot, dir: siteCheckout })
+    git(source.gitDir, ["worktree", "add", "--detach", sourceCheckout, tag.commit], source.env)
+    checkouts.push({ repo: source.gitDir, dir: sourceCheckout, env: source.env })
+
+    // The installed dependencies, rather than an install per version.
+    linkNodeModules(a.registryRoot, siteRoot)
+    if (relRoot) linkNodeModules(repoRoot, siteCheckout)
+
+    const command = expandSyncCommand(sourceConfig.sync, { sourceDir: sourceCheckout, siteDir: siteRoot })
+    await runCommand(command, siteRoot, `sync (${tag.tag})`, {
+      DOCS_SHELL_SOURCE_DIR: sourceCheckout,
+      DOCS_SHELL_SITE_DIR: siteRoot,
+      DOCS_SHELL_SOURCE_REF: tag.tag,
+      DOCS_SHELL_SOURCE_COMMIT: tag.commit,
+      DOCS_SHELL_VERSION: tag.version,
+    })
+
+    const tagLoaded = loadUserConfigFile(path.join(siteRoot, configName))
+    const staging = `${entryDir}.partial`
+    fs.rmSync(staging, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+    await a.buildSite(tagLoaded, {
+      args: a.args,
+      outDir: path.join(staging, "site"),
+      basePath: versionBasePath(tag.version),
+      version: tag.version,
+      versions: true,
+      ...sourceChangelogOption(
+        source,
+        tag.commit,
+        a.loaded.config.versions?.changelog,
+        path.join(workParent, "CHANGELOG.md"),
+      ),
+    })
+
+    const newMeta: CacheMeta = {
+      version: tag.version,
+      tag: tag.tag,
+      commit: tag.commit,
+      shellVersion,
+      builtAt: new Date().toISOString(),
+      hasRegistry: false,
+      siteHash,
+    }
+    fs.writeFileSync(path.join(staging, CACHE_META_FILE), JSON.stringify(newMeta, null, 2) + "\n")
+    fs.rmSync(entryDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
+    fs.renameSync(staging, entryDir)
+    return entryDir
+  } finally {
+    // Links first: deleting the checkout must never reach the real node_modules.
+    unlinkNodeModules(siteRoot)
+    unlinkNodeModules(siteCheckout)
+    removeCheckouts(checkouts, workParent)
+  }
 }
 
 interface EnsureSnapshotArgs {
@@ -287,7 +478,7 @@ async function ensureSnapshot(a: EnsureSnapshotArgs): Promise<string | null> {
     fs.renameSync(staging, entryDir)
     return entryDir
   } finally {
-    removeWorktree(repoRoot, workParent)
+    removeCheckouts([{ repo: repoRoot, dir: worktree }], workParent)
   }
 }
 
@@ -348,10 +539,15 @@ export function resolveInstallCommand(
   return null
 }
 
-function runCommand(command: string, cwd: string, label: string): Promise<void> {
+function runCommand(
+  command: string,
+  cwd: string,
+  label: string,
+  extraEnv: Record<string, string> = {},
+): Promise<void> {
   log(`versions: ${label}: ${command}`)
   return new Promise((resolve, reject) => {
-    const child = spawn(command, { cwd, shell: true, stdio: "inherit", env: process.env })
+    const child = spawn(command, { cwd, shell: true, stdio: "inherit", env: { ...process.env, ...extraEnv } })
     child.on("error", reject)
     child.on("exit", (code) => {
       if (code === 0) resolve()
@@ -360,24 +556,34 @@ function runCommand(command: string, cwd: string, label: string): Promise<void> 
   })
 }
 
-function removeWorktree(repoRoot: string, workParent: string): void {
-  // Delete the files ourselves (retries cope with Windows file locks), then
-  // let git drop its bookkeeping for the now-missing worktree.
+/**
+ * Remove temporary checkouts, each from its own repository by path (not
+ * `git worktree prune`, which would also drop unrelated stale worktrees of
+ * a local source clone), then whatever is left of their parent folder.
+ */
+function removeCheckouts(
+  checkouts: Array<{ repo: string; dir: string; env?: NodeJS.ProcessEnv }>,
+  workParent: string,
+): void {
+  for (const { repo, dir, env } of checkouts) {
+    try {
+      execFileSync("git", ["worktree", "remove", "--force", dir], { cwd: repo, env: env ?? process.env, stdio: "ignore" })
+    } catch {
+      /* deleted below; git lists the entry as prunable */
+    }
+  }
   try {
     fs.rmSync(workParent, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
   } catch (err) {
     log(`versions: couldn't remove ${workParent} (${(err as Error).message}); remove it manually.`)
   }
-  try {
-    git(repoRoot, ["worktree", "prune"])
-  } catch {
-    /* best effort */
-  }
 }
 
-function git(cwd: string, args: string[]): string {
+
+function git(cwd: string, args: string[], env: NodeJS.ProcessEnv = process.env): string {
   return execFileSync("git", args, {
     cwd,
+    env,
     encoding: "utf-8",
     stdio: ["ignore", "pipe", "pipe"],
   })

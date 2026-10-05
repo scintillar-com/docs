@@ -133,6 +133,7 @@ const translations = {
     "versions.label": "Version",
     "versions.latest": "Latest",
     "versions.banner": "You're viewing {version}; the latest is {latest}.",
+    "versions.unreleased": "You're viewing {label}, which isn't released yet; the latest release is {latest}.",
     "versions.goToLatest": "Go to latest",
 
     // Releases page (versioned builds with a changelog)
@@ -283,6 +284,7 @@ const translations = {
     "versions.label": "Version",
     "versions.latest": "Dernière",
     "versions.banner": "Vous consultez la {version} ; la plus récente est la {latest}.",
+    "versions.unreleased": "Vous consultez {label}, pas encore publiée ; la dernière version publiée est la {latest}.",
     "versions.goToLatest": "Voir la dernière version",
 
     // Page des versions

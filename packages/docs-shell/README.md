@@ -454,7 +454,7 @@ export default defineConfig({
 | `/r/<name>.json`        | Latest registry JSON                                  |
 | `/v/<version>/`         | Frozen site of each matching tag                      |
 | `/r/v<version>/<name>.json` | Frozen registry JSON of each matching tag         |
-| `/versions.json`        | Manifest: `{ latest, versions: [{ version, tag, commit, date, isLatest, path, registry }] }` |
+| `/versions.json`        | Manifest: `{ latest, current, versions: [{ version, tag, commit, date, isLatest, path, registry, source? }] }` |
 | `/changes/<name>.json`  | Change history of each registry item, read by the "Changes" tab |
 | `/releases/`            | Releases page, when the changelog exists (also `/v/<version>/releases/`) |
 
@@ -522,6 +522,69 @@ about later releases.
 
 Without `versions`, the build output is exactly the single latest site:
 no Releases page, no Changes tab, no `/changes/`.
+
+**Oldest version.** `minVersion: "1.0.0"` leaves out tags below it.
+
+### Versions from another repository
+
+A docs site often lives in its own repository while the pages are written
+next to the code they document, and a sync script copies them into
+`content/docs` (see "Preparing content from another repository"). Its
+versions are then the **code's** releases, not the site's. Point
+`versions.source` at the code's repository:
+
+```ts
+// docs-shell.config.ts
+export default defineConfig({
+  branding: { /* ... */ },
+  versions: {
+    tags: "v*",                                         // the source's tags
+    minVersion: "1.0.0",                                // optional
+    source: {
+      repo: "https://github.com/org/app.git",           // or a local path: "../app"
+      sync: "node scripts/sync-docs.mjs --source {sourceDir} --clean",
+      // tokenEnv: "APP_REPO_TOKEN",                    // private repositories
+      // syncOutputs: ["content/docs", "public/docs-assets"],  // default: the docs folder
+      // ref: "main",                                   // default: the source's default branch
+    },
+    current: { label: "develop" },                      // the site root isn't a release
+  },
+})
+```
+
+For each of the source's tags, the build checks out **this site as
+committed** (config, theme, sync script; your installed `node_modules`
+are reused, nothing is installed) and the **source at the tag**, runs
+`sync` in the site checkout, and builds the result under `/v/<version>/`.
+`{sourceDir}` and `{siteDir}` in `sync` are the two checkouts; the command
+also gets `DOCS_SHELL_SOURCE_DIR`, `DOCS_SHELL_SITE_DIR`,
+`DOCS_SHELL_SOURCE_REF` (the tag), `DOCS_SHELL_SOURCE_COMMIT` and
+`DOCS_SHELL_VERSION`, e.g. to link to the source files at the right tag.
+Your own checkout is never modified.
+
+- **The site root** is built from the working tree as it is: the pages
+  your usual sync put there (typically from the source's main branch).
+  With `current.label`, the version switcher lists it under that name, it
+  shows a notice pointing to the latest release, and "Go to latest" links
+  go to the latest release's snapshot rather than to `/`.
+- **The Releases page** reads `changelog` from the **source**: each
+  snapshot shows it as it was at its tag, the root as it is on `ref`.
+- **Caching.** A snapshot is rebuilt when its tag moves, when the site's
+  committed files change (theme, config, sync script) or when the shell is
+  upgraded. What the sync writes (`syncOutputs`) is left out, so syncing
+  new pages into the site root doesn't rebuild every version. Snapshots
+  use the committed site: commit theme changes before building.
+- **The source repository.** A local path is used as it is. A URL is
+  cloned once into `cacheDir` (file contents are only downloaded for the
+  tags that are built) and fetched on each build, so new and moved tags
+  are picked up. For a private repository over HTTPS, put a read token in
+  an environment variable and name it in `tokenEnv`: it's sent to git as a
+  header, never written to disk or shown in a command line. Without one,
+  git never prompts; the build fails with a message saying so.
+- `/versions.json` records where each snapshot came from:
+  `source: { repo, ref, commit }` per version, and `current: { label }`.
+  Registry JSON and the Changes tab don't apply to versions from another
+  repository.
 
 ## Releasing
 

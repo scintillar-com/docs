@@ -59,7 +59,8 @@ export function VersionSwitcher() {
         <SelectValue />
       </SelectTrigger>
       <SelectContent align="end">
-        <SelectItem value={LATEST}>{t("versions.latest")}</SelectItem>
+        {/* The site root: "Latest", or its label when it isn't a release. */}
+        <SelectItem value={LATEST}>{manifest.current?.label ?? t("versions.latest")}</SelectItem>
         {manifest.versions.map((v) => (
           <SelectItem key={v.version} value={v.version}>
             v{v.version}

@@ -28,6 +28,12 @@ export interface VersionEntry extends VersionTag {
   path: string
   /** Registry JSON root of the frozen snapshot, e.g. `/r/v1.2.0/`. */
   registry: string
+  /**
+   * Where the snapshot's pages came from, when versions are taken from
+   * another repository (`versions.source`): its `repo` as configured, the
+   * tag and the commit it points at.
+   */
+  source?: { repo: string; ref: string; commit: string }
 }
 
 /** Shape of `/versions.json`, fetched at runtime by the switcher + banner. */
@@ -36,6 +42,11 @@ export interface VersionsManifest {
   latest: string | null
   /** Every published snapshot, newest first. */
   versions: VersionEntry[]
+  /**
+   * The site root, when it isn't the latest release (`versions.current`):
+   * its label, e.g. `"develop"`. Null when the root is the latest release.
+   */
+  current: { label: string } | null
 }
 
 interface ParsedVersion {
@@ -186,8 +197,25 @@ export function versionRegistryPath(version: string): string {
   return `/r/v${version}/`
 }
 
+/** Tags at or above `minVersion` (all of them when it's unset). */
+export function filterMinVersion(tags: VersionTag[], minVersion?: string): VersionTag[] {
+  if (!minVersion) return tags
+  if (!parseVersionFromTag(minVersion)) {
+    throw new Error(`[docs-shell] versions.minVersion: "${minVersion}" isn't a version (expected e.g. "1.0.0").`)
+  }
+  const min = parseVersionFromTag(minVersion)!
+  return tags.filter((t) => compareVersions(t.version, min) >= 0)
+}
+
+export interface ManifestOptions {
+  /** Label of the site root when it isn't the latest release. */
+  currentLabel?: string
+  /** `versions.source.repo`, recorded on every entry. */
+  sourceRepo?: string
+}
+
 /** Build the `/versions.json` payload from the published tags. */
-export function buildManifest(tags: VersionTag[]): VersionsManifest {
+export function buildManifest(tags: VersionTag[], options: ManifestOptions = {}): VersionsManifest {
   const latest = pickLatest(tags.map((t) => t.version))
   const versions = [...tags]
     .sort((a, b) => compareVersions(b.version, a.version))
@@ -199,6 +227,13 @@ export function buildManifest(tags: VersionTag[]): VersionsManifest {
       isLatest: t.version === latest,
       path: versionSitePath(t.version),
       registry: versionRegistryPath(t.version),
+      ...(options.sourceRepo
+        ? { source: { repo: options.sourceRepo, ref: t.tag, commit: t.commit } }
+        : {}),
     }))
-  return { latest, versions }
+  return {
+    latest,
+    versions,
+    current: options.currentLabel ? { label: options.currentLabel } : null,
+  }
 }

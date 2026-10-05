@@ -28,7 +28,20 @@ export interface VersionsManifest {
     isLatest: boolean
     path: string
     registry: string
+    source?: { repo: string; ref: string; commit: string }
   }>
+  /** The site root's label when it isn't the latest release (absent in older manifests). */
+  current?: { label: string } | null
+}
+
+/**
+ * Where "the latest release" lives: the site root, or, when the root is
+ * labelled (e.g. a `develop` build, see `versions.current`), the latest
+ * release's snapshot.
+ */
+export function latestReleaseHref(manifest: VersionsManifest): string {
+  if (!manifest.current?.label) return "/"
+  return manifest.versions.find((v) => v.isLatest)?.path ?? "/"
 }
 
 /** Always at the site root, whatever the current build's base path. */
