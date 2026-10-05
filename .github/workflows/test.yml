@@ -43,7 +43,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # packages/registry-shell/tsconfig.json covers src/, next-app/, and the
+      # packages/docs-shell/tsconfig.json covers src/, next-app/, and the
       # Playwright configs. `noEmit: true` is set there, so this is pure
       # type-checking. Root scripts forward to the package.
       - run: pnpm typecheck
@@ -82,8 +82,9 @@ jobs:
       - run: pnpm build
       - run: pnpm test:fixtures
 
-  # Docs-only site end to end (desktop + phone width), against the static
-  # export of fixtures/docs-basic.
+  # Docs-only sites end to end (desktop + phone width), against the static
+  # exports of fixtures/docs-basic and fixtures/docs-nested. Playwright is a
+  # dev dependency of the engine (@sntlr/docs-shell), not of the preset.
   docs-e2e:
     name: Docs e2e
     runs-on: ubuntu-latest
@@ -97,7 +98,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @sntlr/registry-shell exec playwright install --with-deps chromium
+      - run: pnpm --filter @sntlr/docs-shell exec playwright install --with-deps chromium
       - run: pnpm test:docs
 
   unit-tests:
