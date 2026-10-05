@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { getAllComponents } from "@shell/lib/components-nav"
+import { getAllComponents, getPreviewHeight } from "@shell/lib/components-nav"
 import { registry } from "@shell/registry.config"
 import { ComponentPreview } from "@shell/components/component-preview"
 import { ComponentTabs } from "@shell/components/component-tabs"
@@ -48,7 +48,7 @@ export default async function ComponentPage({
       </ComponentBreadcrumb>
 
       {/* Resizable preview area */}
-      <ResizablePreview>
+      <ResizablePreview defaultHeight={getPreviewHeight(name)}>
         <ComponentPreview name={name} />
       </ResizablePreview>
 

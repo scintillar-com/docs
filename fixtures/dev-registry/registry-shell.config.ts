@@ -31,6 +31,9 @@ export default defineConfig({
     // `hello` and anything new falls through to the synthesized Base group.
   },
 
+  // Exercises the per-component default preview height (clamped 200..1000).
+  previewHeight: { card: 520 },
+
   // Multi-locale exercises the header locale toggle, getDocAllLocales, and
   // the LocalizedMdx serialize → client-render path. Matches /registry's
   // real-world config so the fixture catches multi-locale regressions.

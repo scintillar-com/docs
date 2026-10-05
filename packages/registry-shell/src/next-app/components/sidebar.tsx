@@ -10,6 +10,7 @@ import type { CategoryMeta, ComponentMeta } from "@shell/lib/components-nav"
 import { useTranslations, useLocale } from "@shell/lib/i18n"
 import { Backdrop } from "@shell/components/shell-ui/backdrop"
 import { RELEASES_ENABLED } from "@shell/lib/versions"
+import { groupComponentsByCategory } from "@shell/lib/sidebar-groups"
 
 import type { ActiveSection } from "@shell/hooks/use-active-section"
 
@@ -204,14 +205,6 @@ export function Sidebar({
   )
 }
 
-/**
- * Stable slug for the uncategorized bucket's localStorage key + DOM id. Kept
- * in English on purpose so a user's collapsed/expanded preference and the
- * rendered id survive locale switches; the visible heading is translated via
- * `sidebar.base` (override per locale in extraTranslations).
- */
-const UNCATEGORIZED_SLUG = "base"
-
 function SidebarComponentList({
   components,
   categories,
@@ -241,34 +234,13 @@ function SidebarComponentList({
   }
 
   // Partition: each category gets the components whose `categories` include
-  // its label; leftovers land in a synthesized group (translated via
-  // `sidebar.base`). All groups — including Base — render alphabetically so
-  // declaration order in config has no effect on presentation.
-  const uncategorized = components.filter(
-    (c) => !c.categories || c.categories.length === 0
+  // its label, in the order the config declares the categories; leftovers
+  // land in a synthesized group (translated via `sidebar.base`), always last.
+  const groups = groupComponentsByCategory(
+    components,
+    categories,
+    t("sidebar.base"),
   )
-
-  const groups: Array<{
-    label: string
-    slug: string
-    components: ComponentMeta[]
-  }> = categories
-    .map((cat) => ({
-      label: cat.label,
-      slug: cat.label,
-      components: components.filter((c) => c.categories?.includes(cat.label)),
-    }))
-    .filter((g) => g.components.length > 0)
-
-  if (uncategorized.length > 0) {
-    groups.push({
-      label: t("sidebar.base"),
-      slug: UNCATEGORIZED_SLUG,
-      components: uncategorized,
-    })
-  }
-
-  groups.sort((a, b) => a.label.localeCompare(b.label))
 
   return (
     <div className="space-y-2">
@@ -304,27 +276,39 @@ function SidebarCategoryGroup({
   // Persist expand/collapse across navigations via localStorage. Key uses the
   // slug (stable), not the translated label.
   const storageKey = `registry-shell.sidebar-category.${slug}`
-  const [open, setOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true
-    const stored = window.localStorage.getItem(storageKey)
-    return stored === null ? true : stored === "1"
-  })
+  // Start from the server default (open) so the first client render matches
+  // the server HTML; the stored preference is applied after hydration.
+  const [open, setOpen] = useState(true)
 
-  // If a component inside this category is the active route, auto-expand so
-  // the user can see their current page in context.
+  // If a component inside this category is the active route, keep it
+  // expanded so the user can see their current page in context.
   const activeChildName = components.find(
     (c) => pathname === `/components/${c.name}`
   )?.name
+
   useEffect(() => {
-    if (activeChildName && !open) setOpen(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when active route enters this category
+    if (activeChildName) return
+    let stored: string | null = null
+    try {
+      stored = window.localStorage.getItem(storageKey)
+    } catch {
+      // Storage blocked (private mode, sandboxed iframe): keep the default.
+    }
+    if (stored === "0") setOpen(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read storage once on mount
+  }, [storageKey])
+
+  useEffect(() => {
+    if (activeChildName) setOpen(true)
   }, [activeChildName])
 
   const toggle = useCallback(() => {
     setOpen((prev) => {
       const next = !prev
-      if (typeof window !== "undefined") {
+      try {
         window.localStorage.setItem(storageKey, next ? "1" : "0")
+      } catch {
+        // Storage blocked: the toggle still works for this page view.
       }
       return next
     })

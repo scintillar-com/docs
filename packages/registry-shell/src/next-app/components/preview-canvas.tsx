@@ -9,6 +9,10 @@ import {
 } from "react"
 import { Crosshair, SlidersHorizontal, Maximize, X } from "lucide-react"
 import { Button } from "@shell/components/shell-ui/button"
+import {
+  shouldHandleCanvasKey,
+  shouldZoomOnWheel,
+} from "@shell/lib/preview-canvas-input"
 
 const DOT_SPACING = 24
 const DOT_RADIUS = 1
@@ -246,11 +250,16 @@ export function PreviewCanvas({
     }
   }, [setCamera])
 
-  // Native wheel listener with { passive: false } to actually prevent page scroll
+  // Native wheel listener with { passive: false } so a zoom can prevent the
+  // page from scrolling. Only zooms on Ctrl/Cmd + wheel (and trackpad pinch,
+  // which browsers report as ctrlKey) or over the empty canvas; a plain wheel
+  // over the component is left alone so its scroll areas scroll natively.
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     function handleWheel(e: WheelEvent) {
+      const surfaces = [el, canvasRef.current, componentWrapperRef.current]
+      if (!shouldZoomOnWheel(e, surfaces)) return
       e.preventDefault()
       e.stopPropagation()
       const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP
@@ -297,10 +306,10 @@ export function PreviewCanvas({
         onMouseUp={onMouseUp}
         onMouseLeave={onMouseLeave}
         onKeyDown={(e) => {
-          // Don't intercept arrows when an input/textarea/contenteditable is focused
-          const tag = (e.target as HTMLElement).tagName
-          const editable = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable
-          if (editable) return
+          // Leave keys to the component when it already handled them or
+          // focus is inside one of its interactive elements (inputs,
+          // sliders, tabs, menus...), so e.g. arrows on a slider don't pan.
+          if (!shouldHandleCanvasKey(e)) return
 
           const PAN_STEP = 20
           if (e.key === "ArrowUp") { e.preventDefault(); setCamera((c) => ({ ...c, y: c.y + PAN_STEP })) }
@@ -328,12 +337,19 @@ export function PreviewCanvas({
             className="absolute inset-0 pointer-events-auto cursor-move"
             onMouseDown={onComponentMouseDown}
           />
-          {/* Component — sits above the move handle, uses its own cursors */}
+          {/* Component — sits above the move handle, uses its own cursors.
+              The inner wrapper spans the full width so a preview whose root
+              is `w-full` gets the canvas width instead of collapsing to its
+              intrinsic size, while `justify-center` still centres narrower
+              ones. The wrapper itself ignores pointer events (only its
+              children take them), so a click beside a narrow component
+              still lands on the move handle. */}
           <div
             className="absolute inset-0 flex items-center justify-center pointer-events-none"
           >
             <div
-              className="pointer-events-auto cursor-default"
+              data-slot="preview-canvas-content"
+              className="flex w-full max-w-full justify-center pointer-events-none [&>*]:pointer-events-auto [&>*]:cursor-default"
               style={{
                 transform: `translate(${pos.x}px, ${pos.y}px)`,
               }}

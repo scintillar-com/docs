@@ -10,3 +10,8 @@ export function getAllComponents(): ComponentMeta[] {
 export function getCategories(): CategoryMeta[] {
   return registry?.getCategories?.() ?? []
 }
+
+/** Configured default preview height for a component (`previewHeight`). */
+export function getPreviewHeight(name: string): number | undefined {
+  return registry?.getPreviewHeight?.(name)
+}

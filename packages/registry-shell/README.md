@@ -45,11 +45,45 @@ export default defineConfig({
   // },
 
   // themePanel: { since: "1.0.0" },   // optional, see "Theme panel"
+  // categories: { Forms: ["input", "select"], Layout: ["card"] },
+  // previewHeight: { "data-table": 640 }, // optional, see "Component pages"
 })
 ```
 
 The only required field is `branding`. Everything else follows shadcn
 conventions out of the box.
+
+### Component pages
+
+**Sidebar categories.** `categories` groups components into collapsible
+sections of the Components sidebar. Sections appear in the order you
+declare the keys; components not listed anywhere go into a final "Base"
+section (heading translatable via the `sidebar.base` key in
+`extraTranslations`). Inside a section, components are sorted by label.
+
+**Preview height.** Each component page shows its preview in a resizable
+box, 384px tall by default (600px on phones). `previewHeight` sets a
+different starting height per component, in pixels, keyed by component
+name:
+
+```ts
+previewHeight: {
+  "data-table": 640,
+  calendar: 520,
+},
+```
+
+Values are clamped to the resize range (200 to 1000). Once a visitor
+drags the resize handle, their height is kept for the rest of the browser
+tab and wins over the configured one.
+
+**Interacting with a preview.** The preview sits on a pan/zoom canvas.
+Scrolling over the component scrolls it (lists, scroll areas); scrolling
+over the empty canvas, Ctrl/Cmd + scroll or a trackpad pinch zooms. Arrow
+keys pan, `+` / `-` zoom and `0` recenters, except while focus is in one of
+the component's inputs or widgets (sliders, tabs, menus, listboxes...). A
+preview whose root is `w-full` takes the canvas width; narrower ones stay
+centred.
 
 ## How it works
 
