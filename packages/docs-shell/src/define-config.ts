@@ -322,6 +322,20 @@ export interface ShellConfig {
   modules?: {
     registry?: boolean
   }
+
+  /**
+   * Optional. Labels, icons and order for the docs sections: the top-level
+   * folders of `paths.docs`, each shown as a header tab with its own sidebar.
+   * Every top-level folder is a section whether listed or not; listed ones
+   * come first, in this order, then the rest alphabetically with a
+   * title-cased label. A site whose pages all sit at the root of the docs
+   * folder has no sections.
+   *
+   * Example: `sections: [{ dir: "user-guide", label: "User guide", icon: "BookOpen" }]`.
+   * Icons: BookOpen, Boxes, Code2, Cog, FileText, GraduationCap, Layers,
+   * LifeBuoy, Lightbulb, Rocket, Scale, ShieldCheck, Terminal, Wrench.
+   */
+  sections?: Array<{ dir: string; label?: string; icon?: string }>
 }
 
 /**

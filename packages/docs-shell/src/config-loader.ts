@@ -75,6 +75,8 @@ export interface ResolvedShellConfig {
    * empty, the shell renders the flat, un-grouped sidebar.
    */
   categories: Array<{ label: string; names: Set<string> }>
+  /** Declared docs sections, in config order (see `ShellConfig.sections`). */
+  sections: Array<{ dir: string; label?: string; icon?: string }>
   /** When true, docs live under per-locale subfolders. */
   multilocale: boolean
   /** Locale subfolder containing the canonical doc set. Empty when multilocale is off. */
@@ -136,6 +138,7 @@ export function loadResolvedConfig(): ResolvedShellConfig | null {
     },
     adapter: config.adapter ? path.resolve(rootAbs, config.adapter) : null,
     extraTranslations: config.extraTranslations ?? {},
+    sections: (config.sections ?? []).map((s) => ({ ...s })),
     categories: Object.entries(config.categories ?? {}).map(([label, names]) => ({
       label,
       names: new Set(names),

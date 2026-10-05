@@ -22,6 +22,7 @@ import { useMobileSidebar } from "@shell/components/sidebar-provider"
 import { useNavData } from "@shell/components/nav-data-provider"
 import { useActiveSection, type ActiveSection } from "@shell/hooks/use-active-section"
 import { TranslatedText } from "@shell/components/translated-text"
+import { firstDocSlug } from "@shell/lib/docs-tree"
 import { GITHUB_URL, formatStarCount } from "@shell/lib/github"
 import { branding } from "@shell/lib/branding"
 import { withBasePath } from "@shell/lib/base-path"
@@ -58,8 +59,12 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
   const { open: sidebarOpen, toggle, collapsed } = useMobileSidebar()
 
   const navData = useNavData()
-  const activeSection: ActiveSection = useActiveSection(navData?.components ?? [])
-  const firstDocSlug = navData?.docs[0]?.slug
+  const activeSection: ActiveSection = useActiveSection(navData?.components ?? [], navData?.sections ?? [])
+  // "Documentation" covers pages at the root of the docs folder (every page
+  // of a flat docs site); each docs section (top-level folder) gets its own
+  // tab, landing on the section's own page or its first page.
+  const firstRootSlug = firstDocSlug(navData?.trees[""] ?? [])
+  const sectionTabs = (navData?.sections ?? []).filter((s) => s.firstSlug)
   const firstComponentName = navData?.components.find((c) => c.kind === "component")?.name
   const firstBlockName = navData?.components.find((c) => c.kind === "block")?.name
   const hasBlocks = Boolean(firstBlockName)
@@ -124,11 +129,20 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
             aria-label="Sections"
             className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 h-full"
           >
-            {firstDocSlug && (
-              <HeaderTab href={`/docs/${firstDocSlug}`} active={activeSection === "docs"}>
+            {firstRootSlug && (
+              <HeaderTab href={`/docs/${firstRootSlug}`} active={activeSection === "docs"}>
                 <TranslatedText k="sidebar.documentation" />
               </HeaderTab>
             )}
+            {sectionTabs.map((section) => (
+              <HeaderTab
+                key={section.dir}
+                href={`/docs/${section.firstSlug}`}
+                active={activeSection === `docs:${section.dir}`}
+              >
+                {section.label}
+              </HeaderTab>
+            ))}
             {firstComponentName && (
               <HeaderTab href={`/components/${firstComponentName}`} active={activeSection === "components"}>
                 <TranslatedText k="sidebar.components" />

@@ -120,3 +120,62 @@ describe("locale-folder layout", () => {
     expect(warn).toHaveBeenCalledOnce()
   })
 })
+
+describe("nested folders", () => {
+  it("gives nested pages a path slug, a section and a group", () => {
+    page("intro.mdx", { title: "Intro" })
+    page("guides/start.mdx", { title: "Start" })
+    page("guides/advanced/caching.mdx", { title: "Caching" })
+    const docs = source().getAllDocs()
+    const bySlug = Object.fromEntries(docs.map((d) => [d.slug, d]))
+    expect(Object.keys(bySlug).sort()).toEqual(["guides/advanced/caching", "guides/start", "intro"])
+    expect(bySlug["intro"]).toMatchObject({ section: "", group: "" })
+    expect(bySlug["guides/start"]).toMatchObject({ section: "guides", group: "" })
+    expect(bySlug["guides/advanced/caching"]).toMatchObject({ section: "guides", group: "advanced" })
+  })
+
+  it("serves a folder's _index at the folder's path, a root index.mdx at /docs/index", () => {
+    page("index.mdx", { title: "Home page" })
+    page("guides/_index.mdx", { title: "Guides" })
+    page("guides/advanced/index.mdx", {})
+    page("guides/advanced/caching.mdx", { title: "Caching" })
+    const src = source()
+    const slugs = src.getAllDocs().map((d) => d.slug).sort()
+    expect(slugs).toEqual(["guides", "guides/advanced", "guides/advanced/caching", "index"])
+    // An untitled folder page falls back to the folder name, not "index".
+    expect(src.getAllDocs().find((d) => d.slug === "guides/advanced")?.title).toBe("advanced")
+    expect(src.getDocBySlug("guides")?.meta).toMatchObject({ title: "Guides", section: "guides", group: "" })
+  })
+
+  it("finds translations of nested pages and folder pages", () => {
+    page("guides/_index.mdx", { title: "Guides" }, "Index")
+    page("guides/_index.fr.mdx", { title: "Guides FR" }, "Index FR")
+    page("guides/start.mdx", { title: "Start" }, "Start")
+    page("guides/start.fr.mdx", { title: "Démarrer" }, "Démarrer")
+    const src = source()
+    expect(src.getAllDocs().map((d) => d.slug).sort()).toEqual(["guides", "guides/start"])
+    expect(src.getDocBySlug("guides", "fr")?.content.trim()).toBe("Index FR")
+    expect(src.getDocBySlug("guides/start", "fr")?.meta.title).toBe("Démarrer")
+  })
+
+  it("mirrors nested paths in locale folders", () => {
+    page("en/guides/advanced/caching.mdx", { title: "Caching" }, "Hello")
+    page("fr/guides/advanced/caching.mdx", { title: "Cache" }, "Bonjour")
+    const src = source({ multilocale: true, defaultLocale: "en" })
+    const [doc] = src.getAllDocs()
+    expect(doc).toMatchObject({ slug: "guides/advanced/caching", section: "guides", titles: { en: "Caching", fr: "Cache" } })
+    expect(src.getDocBySlug("guides/advanced/caching", "fr")?.content.trim()).toBe("Bonjour")
+  })
+
+  it("warns once when two files answer at the same URL", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    page("guides.mdx", { title: "Guides page" })
+    page("guides/_index.mdx", { title: "Guides folder" })
+    page("guides/start.mdx", { title: "Start" })
+    const src = source()
+    src.getAllDocs()
+    src.getAllDocs()
+    expect(warn).toHaveBeenCalledOnce()
+    expect(src.getAllDocs().filter((d) => d.slug === "guides")).toHaveLength(1)
+  })
+})

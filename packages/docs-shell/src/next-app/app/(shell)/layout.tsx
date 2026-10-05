@@ -11,7 +11,7 @@ import { A11yProvider } from "@shell/components/a11y-provider"
 import { NavigationProgress } from "@shell/components/navigation-progress"
 import { NavDataProvider } from "@shell/components/nav-data-provider"
 import { GlobalMobileSidebar } from "@shell/components/global-mobile-sidebar"
-import { getAllDocs } from "@shell/lib/docs"
+import { getAllDocs, getDocsNav } from "@shell/lib/docs"
 import { getAllComponents, getCategories } from "@shell/lib/components-nav"
 import { getGithubStars } from "@shell/lib/github"
 import { branding } from "@shell/lib/branding"
@@ -73,6 +73,7 @@ export default async function RootLayout({
   const docs = getAllDocs()
   const components = getAllComponents()
   const categories = getCategories()
+  const { sections, trees } = getDocsNav()
   // Server-side, revalidates hourly. Returns null on failure → header shows
   // the GitHub icon without a count.
   const githubStars = await getGithubStars()
@@ -89,7 +90,7 @@ export default async function RootLayout({
             defaultLocale={shellDefaultLocale}
             availableLocales={shellLocales}
           >
-            <NavDataProvider docs={docs} components={components}>
+            <NavDataProvider docs={docs} components={components} categories={categories} sections={sections} trees={trees}>
               <SidebarProvider>
                 <NavigationProgress />
                 <A11yProvider />
@@ -98,7 +99,7 @@ export default async function RootLayout({
                 {/* Mobile-only sidebar mounted here so the hamburger menu works
                     on every page (including the homepage). Per-section layouts
                     still mount their own desktop-only Sidebar via SidebarLayout. */}
-                <GlobalMobileSidebar docs={docs} components={components} categories={categories} />
+                <GlobalMobileSidebar />
                 {children}
               </SidebarProvider>
             </NavDataProvider>

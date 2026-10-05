@@ -4,13 +4,15 @@ import { getAllDocs, getDocBySlug, getDocAllLocales } from "@shell/lib/docs"
 import { DocsToc } from "@shell/components/docs-toc"
 import { LocalizedMdx } from "@shell/components/localized-mdx"
 
+// Catch-all: nested pages (`guides/advanced/caching`) and flat ones (`intro`)
+// alike; flat URLs are unchanged.
 export function generateStaticParams() {
-  return getAllDocs().map((doc) => ({ slug: doc.slug }))
+  return getAllDocs().map((doc) => ({ slug: doc.slug.split("/") }))
 }
 
-export function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+export function generateMetadata({ params }: { params: Promise<{ slug: string[] }> }) {
   return params.then(({ slug }) => {
-    const doc = getDocBySlug(slug)
+    const doc = getDocBySlug(slug.join("/"))
     if (!doc) return {}
     return {
       title: pageTitle(doc.meta.title),
@@ -22,9 +24,9 @@ export function generateMetadata({ params }: { params: Promise<{ slug: string }>
 export default async function DocPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string[] }>
 }) {
-  const { slug } = await params
+  const slug = (await params).slug.join("/")
   const doc = getDocBySlug(slug)
 
   if (!doc) notFound()

@@ -33,7 +33,11 @@ export interface CategoryMeta {
 
 /** Doc page metadata (frontmatter + slug). Drives the docs sidebar. */
 export interface DocMeta {
-  /** URL-safe slug, matches the `.mdx` filename without extension. */
+  /**
+   * URL path under `/docs/`: the file's path below the docs folder without
+   * `.mdx`, e.g. `"intro"` or `"guides/advanced/caching"`. A folder's
+   * `_index.mdx` / `index.mdx` answers at the folder's own path.
+   */
   slug: string
   /** Default-locale title (typically English). */
   title: string
@@ -42,6 +46,14 @@ export interface DocMeta {
   order: number
   /** Per-locale titles, e.g. `{ en: "Getting Started", fr: "Démarrage" }`. */
   titles: Record<string, string>
+  /**
+   * Top-level folder the page lives in (a header tab), or `""` for a page at
+   * the root of the docs folder. Derived from `slug` when a custom adapter
+   * leaves it out.
+   */
+  section?: string
+  /** Folders between the section and the file, e.g. `"advanced"`. */
+  group?: string
 }
 
 /** Full MDX body of a doc for one locale, plus its metadata. */

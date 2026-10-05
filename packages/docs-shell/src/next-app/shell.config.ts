@@ -63,4 +63,6 @@ function buildRegistry(docs: DocsSource): RegistryAdapter | null {
 }
 
 export const docs: DocsSource = buildDocs()
+/** Docs sections declared in the config (labels, icons, order). */
+export const declaredSections = resolved?.sections ?? []
 export const registry: RegistryAdapter | null = buildRegistry(docs)

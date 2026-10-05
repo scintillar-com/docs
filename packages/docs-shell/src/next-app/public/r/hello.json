@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "hello",
+  "type": "registry:component",
+  "title": "Hello",
+  "description": "Minimal smoke-test component.",
+  "files": [
+    {
+      "path": "components/ui/hello.tsx",
+      "content": "export function Hello({ name = \"world\" }: { name?: string }) {\n  return <span>Hello, {name}!</span>\n}\n",
+      "type": "registry:component"
+    }
+  ]
+}

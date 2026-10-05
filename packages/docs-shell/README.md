@@ -224,6 +224,45 @@ export default defineConfig({
 A file only counts as a translation when its base page exists, so a page
 whose name contains a dot (`v1.2-notes.mdx`) keeps its URL.
 
+### Organizing pages: sections and folders
+
+Pages can be nested in folders; the URL follows the path
+(`content/docs/guides/advanced/caching.mdx` → `/docs/guides/advanced/caching`).
+A flat docs folder keeps the URLs it always had.
+
+- **Sections.** Each top-level folder is a section: its own header tab,
+  sidebar block and homepage card. Pages at the root of the docs folder
+  stay under the "Documentation" tab.
+- **Folder pages.** A folder's `_index.mdx` (or `index.mdx`) answers at the
+  folder's URL (`/docs/guides/advanced`) and gives the folder its title and
+  sidebar position (`order`). A folder without one is a plain sidebar
+  heading, title-cased from its name, with no URL of its own.
+- **Order.** Pages and folders sort by `order` in frontmatter, then by
+  title. The sidebar remembers which folders a reader collapsed, and the
+  desktop sidebar can be resized by dragging its right edge.
+- **Translations.** Either `<name>.<locale>.mdx` beside the page (folder
+  pages too: `_index.fr.mdx`), or a folder per locale mirroring the tree
+  (`content/docs/en/guides/start.mdx`, `content/docs/fr/guides/start.mdx`);
+  with locale folders, the default locale's folder defines the pages.
+
+Sections are discovered from disk (alphabetically, with a title-cased
+label). Declare them to set the label, icon and order:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  sections: [
+    { dir: "guides", label: "User guide", icon: "Rocket" },
+    { dir: "reference", icon: "Code2" },
+  ],
+})
+```
+
+Declared sections come first, in that order; folders not listed follow.
+Icons: `BookOpen` (default), `Boxes`, `Code2`, `Cog`, `FileText`,
+`GraduationCap`, `Layers`, `LifeBuoy`, `Lightbulb`, `Rocket`, `Scale`,
+`ShieldCheck`, `Terminal`, `Wrench`.
+
 ## Advanced: custom adapters
 
 For non-convention registries (database-backed metadata, non-MDX docs, etc.)

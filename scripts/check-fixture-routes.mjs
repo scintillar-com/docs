@@ -20,6 +20,7 @@ const engineCli = path.join(root, "packages/docs-shell/dist/cli/index.js")
 // `docs-shell`, the registry through the `registry-shell` preset's bin.
 const FIXTURE_CLI = {
   "docs-basic": engineCli,
+  "docs-nested": engineCli,
   "dev-registry": path.join(root, "packages/registry-shell/bin/registry-shell.js"),
 }
 const FIXTURES = Object.keys(FIXTURE_CLI)

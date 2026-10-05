@@ -32,6 +32,18 @@ importers:
         specifier: ^19.1.0
         version: 19.1.6(react@19.1.6)
 
+  fixtures/docs-nested:
+    devDependencies:
+      '@sntlr/docs-shell':
+        specifier: workspace:*
+        version: link:../../packages/docs-shell
+      react:
+        specifier: ^19.1.0
+        version: 19.1.6
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.1.6(react@19.1.6)
+
   packages/docs-shell:
     dependencies:
       '@tailwindcss/postcss':
