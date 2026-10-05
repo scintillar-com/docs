@@ -10,9 +10,9 @@ concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
-# Four independent jobs run in parallel so the GitHub UI shows
-# pass/fail separately per check (Lint ✗ vs Type-check ✗ vs Build ✗ vs
-# Unit-tests ✗). Each job re-runs its own checkout + install; pnpm's
+# Independent jobs run in parallel so the GitHub UI shows pass/fail
+# separately per check (Lint, Type-check, Build, Fixture routes, Docs e2e,
+# Unit tests). Each job re-runs its own checkout + install; pnpm's
 # cached store keeps that overhead small (~10s on warm cache).
 jobs:
   lint:
@@ -62,6 +62,43 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  # Builds each fixture with the real CLI and compares the pages it produced
+  # with its committed routes.txt (e.g. a docs-only site must not get
+  # registry pages). See scripts/check-fixture-routes.mjs.
+  fixture-routes:
+    name: Fixture routes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test:fixtures
+
+  # Docs-only site end to end (desktop + phone width), against the static
+  # export of fixtures/docs-basic.
+  docs-e2e:
+    name: Docs e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sntlr/registry-shell exec playwright install --with-deps chromium
+      - run: pnpm test:docs
 
   unit-tests:
     name: Unit tests

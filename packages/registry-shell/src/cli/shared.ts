@@ -118,7 +118,9 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
   const nextApp = nextAppDir()
   const nextDir = path.join(nextApp, ".next")
   const stampPath = path.join(nextApp, ".registry-shell-mode")
-  const currentMode = loaded?.configPath ?? "<shell-only>"
+  // The module set changes which route files Next compiles, so a switch
+  // (e.g. a site gains its first component) must also clear the cache.
+  const currentMode = `${loaded?.configPath ?? "<shell-only>"} [${resolveModules(loaded).join(",")}]`
 
   let previousMode = "<never>"
   if (fs.existsSync(stampPath)) {
@@ -168,6 +170,38 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
   writeFileFresh(stampPath, currentMode + "\n")
 }
 
+/** Optional shell modules (see `ShellConfig.modules`). */
+export type ShellModule = "registry"
+
+/**
+ * Modules this site uses. Each one is either set explicitly in the config or
+ * detected from the project: the registry module is on when the site has a
+ * custom adapter, component files, or blocks. Shell-only mode (no config)
+ * enables nothing. Feeds `SHELL_MODULES`, which gates the module's routes in
+ * next.config.ts.
+ */
+export function resolveModules(loaded: LoadedConfig | null): ShellModule[] {
+  if (!loaded) return []
+  const { config, root } = loaded
+  const modules: ShellModule[] = []
+
+  const explicit = config.modules?.registry
+  const registry =
+    explicit ??
+    (() => {
+      if (config.adapter) return true
+      const components = path.resolve(root, config.paths?.components ?? "components/ui")
+      if (fs.existsSync(components) && fs.readdirSync(components).some((f) => f.endsWith(".tsx"))) {
+        return true
+      }
+      const blocks = path.resolve(root, config.paths?.blocks ?? "registry/new-york/blocks")
+      return fs.existsSync(blocks) && fs.readdirSync(blocks).length > 0
+    })()
+  if (registry) modules.push("registry")
+
+  return modules
+}
+
 export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
   const nextApp = nextAppDir()
   const appDir = path.join(nextApp, "app")
@@ -192,7 +226,8 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
   sources.push(`@source "${rel(path.join(nextApp, "hooks"))}";`)
   sources.push(`@source "${rel(path.join(nextApp, "fallback"))}";`)
 
-  if (loaded) {
+  // The registry's own folders only matter when its pages are built.
+  if (loaded && resolveModules(loaded).includes("registry")) {
     const paths = loaded.config.paths ?? {}
     const resolve = (r: string | undefined, fallback: string) =>
       path.resolve(loaded.root, r ?? fallback)
@@ -238,7 +273,9 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
  * but runs client-side via inlined env vars.
  */
 function resolveLocaleList(root: string, config: ShellConfig): string[] {
-  if (!config.multilocale) return []
+  // Single-folder sites translate with `<slug>.<locale>.mdx` files; there
+  // are no folders to scan, so only an explicit `locales` list counts.
+  if (!config.multilocale) return config.locales ? [...config.locales] : []
   if (config.locales && config.locales.length > 0) return [...config.locales]
 
   const docsAbs = path.resolve(root, config.paths?.docs ?? "content/docs")
@@ -285,7 +322,11 @@ export function buildEnvVars(
 ): Record<string, string> {
   // Always set SHELL_APP_ROOT so the Next app can resolve its own bundled
   // files (fallbacks, globals.css) independently of process.cwd().
-  const base: Record<string, string> = { SHELL_APP_ROOT: nextAppDir() }
+  const base: Record<string, string> = {
+    SHELL_APP_ROOT: nextAppDir(),
+    // Read by next.config.ts: which modules' routes to compile.
+    SHELL_MODULES: resolveModules(loaded).join(","),
+  }
   if (options.versions) base.NEXT_PUBLIC_SHELL_VERSIONS = "1"
   if (options.version) base.NEXT_PUBLIC_SHELL_VERSION = options.version
   if (options.basePath) base.NEXT_PUBLIC_SHELL_BASE_PATH = options.basePath
@@ -341,6 +382,14 @@ export function buildEnvVars(
     env.NEXT_PUBLIC_SHELL_DEFAULT_LOCALE = config.defaultLocale
     const locales = resolveLocaleList(loaded.root, config)
     env.NEXT_PUBLIC_SHELL_LOCALES = locales.join(",")
+  } else if (!config.multilocale) {
+    // A single-folder site with `<slug>.<locale>.mdx` translations offers
+    // the toggle when it lists more than one locale.
+    const locales = resolveLocaleList(loaded.root, config)
+    if (locales.length > 1) {
+      env.NEXT_PUBLIC_SHELL_DEFAULT_LOCALE = config.defaultLocale || locales[0]
+      env.NEXT_PUBLIC_SHELL_LOCALES = locales.join(",")
+    }
   }
 
   return env

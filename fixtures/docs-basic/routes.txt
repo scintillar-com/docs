@@ -1,0 +1,5 @@
+/
+/404/
+/docs/guide/
+/docs/intro/
+/docs/v1.2-notes/

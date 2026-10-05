@@ -43,7 +43,7 @@ import os from "node:os"
 import path from "node:path"
 import { execFileSync, spawn } from "node:child_process"
 import { fileURLToPath } from "node:url"
-import { CONFIG_FILE_CANDIDATES, loadUserConfigFile, type LoadedConfig } from "./shared.js"
+import { CONFIG_FILE_CANDIDATES, loadUserConfigFile, resolveModules, type LoadedConfig } from "./shared.js"
 import type { BuildSite } from "./build.js"
 import { writeChangeIndexes, type RegistrySource } from "./version-changes.js"
 import {
@@ -163,6 +163,8 @@ export async function runVersionedBuild(
   )
 
   // 4. Per-item change history, oldest release first, the latest site last.
+  // Only for registries: it feeds the component pages' Changes tab.
+  if (!resolveModules(loaded).includes("registry")) return manifest
   const sources: RegistrySource[] = [...published]
     .reverse()
     .filter((t) => registryDirs.has(t.version))
@@ -237,12 +239,15 @@ async function ensureSnapshot(a: EnsureSnapshotArgs): Promise<string | null> {
     const install = resolveInstallCommand(versionsConfig.installCommand, tagRoot, worktree)
     if (install) await runCommand(install.command, install.cwd, `install (${tag.tag})`)
 
-    // 3. Registry JSON.
-    const registryBuild = versionsConfig.registryBuildCommand ?? DEFAULT_REGISTRY_BUILD_COMMAND
+    // 3. Registry JSON. A docs-only site (registry module off at that tag)
+    // has none to build unless it asks for a command explicitly.
+    const tagLoaded = loadUserConfigFile(path.join(tagRoot, configName))
+    const tagHasRegistry = resolveModules(tagLoaded).includes("registry")
+    const registryBuild =
+      versionsConfig.registryBuildCommand ?? (tagHasRegistry ? DEFAULT_REGISTRY_BUILD_COMMAND : "")
     if (registryBuild) await runCommand(registryBuild, tagRoot, `registry build (${tag.tag})`)
 
     // 4. Static export with the current shell, under /v/<version>.
-    const tagLoaded = loadUserConfigFile(path.join(tagRoot, configName))
     const staging = `${entryDir}.partial`
     fs.rmSync(staging, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
     await a.buildSite(tagLoaded, {
@@ -263,7 +268,7 @@ async function ensureSnapshot(a: EnsureSnapshotArgs): Promise<string | null> {
     const hasRegistry = fs.existsSync(registryJson)
     if (hasRegistry) {
       fs.cpSync(registryJson, path.join(staging, "registry"), { recursive: true })
-    } else {
+    } else if (tagHasRegistry) {
       log(`versions: ${tag.tag} — no registry JSON at ${registryJson}; /r/v${tag.version}/ will be missing.`)
     }
 

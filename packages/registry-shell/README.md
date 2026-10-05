@@ -165,6 +165,42 @@ unversioned site, `since` has no effect and the panel is always on.
 With `versions` on, each snapshot is compared to `since`; the latest
 site always shows the panel.
 
+## Docs-only sites
+
+The shell also works as a plain documentation site, with no component
+registry. A project with docs but no components or blocks gets:
+
+- a homepage listing its pages (site name and description from `branding`);
+- no Components or Blocks sections, and no `/components` or `/preview` pages
+  in the build.
+
+This is automatic: the registry part of the shell (the "registry module") is
+on when the project has `.tsx` files in `paths.components`, entries in
+`paths.blocks`, or a custom `adapter`, and off otherwise. To decide
+explicitly:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  modules: { registry: false }, // or true
+})
+```
+
+Translations for a single-folder docs site sit next to their page as
+`<slug>.<locale>.mdx` (`intro.fr.mdx` beside `intro.mdx`). List the locales
+to show the language toggle:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  defaultLocale: "en",
+  locales: ["en", "fr"],
+})
+```
+
+A file only counts as a translation when its base page exists, so a page
+whose name contains a dot (`v1.2-notes.mdx`) keeps its URL.
+
 ## Advanced: custom adapters
 
 For non-convention registries (database-backed metadata, non-MDX docs, etc.)

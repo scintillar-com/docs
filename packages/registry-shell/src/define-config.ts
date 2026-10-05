@@ -129,7 +129,8 @@ export interface VersionsConfig {
   /**
    * Command that builds the registry JSON inside a tag's checkout, run from
    * the registry root after dependencies are installed.
-   * Default: `"npx shadcn build"`. Set to `""` to skip (e.g. when the built
+   * Default: `"npx shadcn build"` (none for a docs-only site, i.e. when
+   * the registry module is off at that tag). Set to `""` to skip (e.g. when the built
    * `public/r` is committed).
    */
   registryBuildCommand?: string
@@ -307,6 +308,20 @@ export interface ShellConfig {
    * output is exactly the single latest site.
    */
   versions?: VersionsConfig
+
+  /**
+   * Optional. Which optional parts of the shell this site uses. Each key
+   * defaults to automatic detection, so most sites never set this.
+   *
+   * - `registry`: component pages, previews and install commands
+   *   (`/components/*`, `/preview/*`). Automatic: on when the site has a
+   *   custom `adapter`, `.tsx` files in `paths.components`, or a
+   *   `paths.blocks` folder with entries; off for a docs-only site. Set
+   *   `true` or `false` to override.
+   */
+  modules?: {
+    registry?: boolean
+  }
 }
 
 /**

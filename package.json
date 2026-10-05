@@ -13,6 +13,8 @@
     "typecheck": "pnpm --filter @sntlr/registry-shell typecheck",
     "test": "pnpm --filter @sntlr/registry-shell test",
     "test:theme-panel": "pnpm --filter @sntlr/registry-shell test:theme-panel",
+    "test:docs": "pnpm --filter @sntlr/registry-shell test:docs",
+    "test:fixtures": "node scripts/check-fixture-routes.mjs",
     "dev:registry": "pnpm --filter dev-registry shell",
     "release": "node scripts/release.mjs"
   }

@@ -147,13 +147,15 @@ export function loadResolvedConfig(): ResolvedShellConfig | null {
 }
 
 /**
- * Resolve the locale list for the locale toggle. In single-locale mode we
- * return an empty array (the toggle hides itself). In multilocale mode we
+ * Resolve the locale list for the locale toggle. In single-folder mode only
+ * an explicit `locales` list counts (translations are `<slug>.<locale>.mdx`
+ * files; without the list the toggle hides itself). In multilocale mode we
  * use the explicit `locales` config if present, otherwise auto-scan
- * subfolders under `paths.docs`.
+ * subfolders under `paths.docs`. Keep in step with `resolveLocaleList` in
+ * cli/shared.ts.
  */
 function resolveLocales(rootAbs: string, docsRel: string, config: ShellConfig): string[] {
-  if (!config.multilocale) return []
+  if (!config.multilocale) return config.locales ? [...config.locales] : []
   if (config.locales && config.locales.length > 0) return [...config.locales]
 
   const docsAbs = path.resolve(rootAbs, docsRel)

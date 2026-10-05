@@ -69,8 +69,9 @@ export function createFsDocsSource(resolved: ResolvedShellConfig): DocsSource {
   const docsDir = resolved.paths.docs
   const isMulti = resolved.multilocale
   // Single-folder sites historically key their only locale as "en"; keep that
-  // unless a default locale is configured, so the client fallback still works.
-  const baseLocale = resolved.defaultLocale || "en"
+  // unless a default locale (or a `locales` list, whose first entry the
+  // locale toggle then starts on) is configured.
+  const baseLocale = resolved.defaultLocale || resolved.locales?.[0] || "en"
   const warned = new Set<string>()
 
   function listLocaleFolders(): string[] {

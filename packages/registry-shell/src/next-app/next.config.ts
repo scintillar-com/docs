@@ -49,8 +49,19 @@ const USER_PREVIEWS = resolveUserModule("components/previews", "fallback/preview
 // Absent for regular builds, so their output is unchanged.
 const BASE_PATH = process.env.NEXT_PUBLIC_SHELL_BASE_PATH || undefined
 
+// Optional modules the CLI enabled for this site (comma-separated, e.g.
+// "registry"). A module's routes are named `page.<module>.tsx` /
+// `layout.<module>.tsx`; Next only treats them as routes when their
+// extension is listed in `pageExtensions`, so a disabled module's routes are
+// never compiled (a docs-only site has no /components or /preview pages,
+// which static export would otherwise reject for having no params).
+const MODULES = (process.env.SHELL_MODULES ?? "").split(",").filter(Boolean)
+const PAGE_EXTENSIONS = [...MODULES.map((m) => `${m}.tsx`), "tsx", "ts", "jsx", "js"]
+
 const nextConfig: NextConfig = {
   ...(BASE_PATH ? { basePath: BASE_PATH } : {}),
+
+  pageExtensions: PAGE_EXTENSIONS,
 
   // Static export (Storybook model) — the shell produces a pure static
   // HTML/JS/CSS tree under `out/`, deployable to any static host (Vercel,
@@ -109,8 +120,10 @@ const nextConfig: NextConfig = {
       "@user/previews": USER_PREVIEWS,
       // Shell's internal alias — its own files.
       "@shell": toPosix(HERE),
-      // shadcn convention: user files use `@/` for their own project root.
-      ...(USER_ROOT ? { "@": toPosix(USER_ROOT) } : {}),
+      // shadcn convention: the registry's component files use `@/` for their
+      // own project root. Registry sites only; a docs-only site has no such
+      // files and keeps `@` free.
+      ...(USER_ROOT && MODULES.includes("registry") ? { "@": toPosix(USER_ROOT) } : {}),
     }
     return config
   },

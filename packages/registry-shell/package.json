@@ -83,7 +83,8 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:theme-panel": "pnpm build && playwright test -c playwright.theme-panel.config.ts"
+    "test:theme-panel": "pnpm build && playwright test -c playwright.theme-panel.config.ts",
+    "test:docs": "pnpm build && playwright test -c playwright.docs.config.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.0",
