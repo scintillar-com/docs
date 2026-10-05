@@ -70,13 +70,20 @@ export interface ResolvedShellConfig {
   adapter: string | null
   extraTranslations: Record<string, Record<string, string>>
   /**
-   * Ordered list of component-sidebar categories (preserves user config order).
-   * Each entry holds a label and the set of component names it contains. When
-   * empty, the shell renders the flat, un-grouped sidebar.
+   * Component-sidebar categories in the insertion order of the config's
+   * `categories` object, which is also the order the sidebar renders them
+   * in (the synthesized "Base" group of uncategorized components comes
+   * last). Each entry holds a label and the set of component names it
+   * contains. When empty, the shell renders the flat, un-grouped sidebar.
    */
   categories: Array<{ label: string; names: Set<string> }>
   /** Declared docs sections, in config order (see `ShellConfig.sections`). */
   sections: Array<{ dir: string; label?: string; icon?: string }>
+  /**
+   * Default inline-preview height in pixels per component name, from the
+   * config's `previewHeight`. Empty when not configured.
+   */
+  previewHeight: Record<string, number>
   /** When true, docs live under per-locale subfolders. */
   multilocale: boolean
   /** Locale subfolder containing the canonical doc set. Empty when multilocale is off. */
@@ -143,6 +150,7 @@ export function loadResolvedConfig(): ResolvedShellConfig | null {
       label,
       names: new Set(names),
     })),
+    previewHeight: resolvePreviewHeight(configPath, config.previewHeight),
     multilocale: Boolean(config.multilocale),
     defaultLocale: config.defaultLocale ?? "",
     locales: resolveLocales(rootAbs, cfgPaths.docs ?? DEFAULT_PATHS.docs, config),
@@ -173,6 +181,29 @@ function resolveLocales(rootAbs: string, docsRel: string, config: ShellConfig): 
     return [config.defaultLocale, ...found.filter((l) => l !== config.defaultLocale)]
   }
   return found
+}
+
+/** Validate `previewHeight`: every value must be a positive, finite number. */
+function resolvePreviewHeight(
+  configPath: string,
+  value: ShellConfig["previewHeight"],
+): Record<string, number> {
+  if (value == null) return {}
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(
+      `[docs-shell] Invalid config at ${configPath}: \`previewHeight\` must be an object of component name to pixels.`,
+    )
+  }
+  const out: Record<string, number> = {}
+  for (const [name, px] of Object.entries(value)) {
+    if (typeof px !== "number" || !Number.isFinite(px) || px <= 0) {
+      throw new Error(
+        `[docs-shell] Invalid config at ${configPath}: \`previewHeight.${name}\` must be a positive number of pixels.`,
+      )
+    }
+    out[name] = px
+  }
+  return out
 }
 
 function extractDefault(loaded: unknown): unknown {

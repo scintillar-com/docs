@@ -14,6 +14,7 @@ import { useTranslations, useLocale } from "@shell/lib/i18n"
 import { Backdrop } from "@shell/components/shell-ui/backdrop"
 import { DragHandle } from "@shell/components/shell-ui/drag-handle"
 import { RELEASES_ENABLED } from "@shell/lib/versions"
+import { groupComponentsByCategory } from "@shell/lib/sidebar-groups"
 
 import type { ActiveSection } from "@shell/hooks/use-active-section"
 
@@ -433,14 +434,6 @@ function SidebarDocLink({
   )
 }
 
-/**
- * Stable slug for the uncategorized bucket's localStorage key + DOM id. Kept
- * in English on purpose so a user's collapsed/expanded preference and the
- * rendered id survive locale switches; the visible heading is translated via
- * `sidebar.base` (override per locale in extraTranslations).
- */
-const UNCATEGORIZED_SLUG = "base"
-
 function SidebarComponentList({
   components,
   categories,
@@ -470,34 +463,9 @@ function SidebarComponentList({
   }
 
   // Partition: each category gets the components whose `categories` include
-  // its label; leftovers land in a synthesized group (translated via
-  // `sidebar.base`). All groups — including Base — render alphabetically so
-  // declaration order in config has no effect on presentation.
-  const uncategorized = components.filter(
-    (c) => !c.categories || c.categories.length === 0
-  )
-
-  const groups: Array<{
-    label: string
-    slug: string
-    components: ComponentMeta[]
-  }> = categories
-    .map((cat) => ({
-      label: cat.label,
-      slug: cat.label,
-      components: components.filter((c) => c.categories?.includes(cat.label)),
-    }))
-    .filter((g) => g.components.length > 0)
-
-  if (uncategorized.length > 0) {
-    groups.push({
-      label: t("sidebar.base"),
-      slug: UNCATEGORIZED_SLUG,
-      components: uncategorized,
-    })
-  }
-
-  groups.sort((a, b) => a.label.localeCompare(b.label))
+  // its label, in the order the config declares the categories; leftovers
+  // land in a synthesized group (translated via `sidebar.base`), always last.
+  const groups = groupComponentsByCategory(components, categories, t("sidebar.base"))
 
   return (
     <div className="space-y-2">

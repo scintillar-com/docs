@@ -265,9 +265,11 @@ export interface ShellConfig {
   /**
    * Optional. Group components under collapsible sub-sections in the sidebar.
    * Keys are category labels (rendered verbatim as headings); values are
-   * arrays of component names matching entries in `components/ui`. Components
-   * not listed in any category render as a flat list below the categorized
-   * groups (backward-compatible with the existing flat behavior).
+   * arrays of component names matching entries in `components/ui`. Groups
+   * appear in the order the keys are declared here. Components not listed in
+   * any category go into a "Base" group (heading translated via the
+   * `sidebar.base` key), shown after all declared categories. Inside a group,
+   * components are sorted by label.
    *
    * Example:
    * ```ts
@@ -292,6 +294,23 @@ export interface ShellConfig {
    * empty string to hide the install line entirely.
    */
   installCommandTemplate?: string
+
+  /**
+   * Optional. Default height in pixels of the inline preview on a
+   * component's page, keyed by component name (the `components/ui` file
+   * name without `.tsx`). Use it for components that need more (or less)
+   * room than the standard default (384px on desktop, 600px on mobile).
+   *
+   * Only the initial height: once a visitor drags the resize handle, their
+   * height is kept for the browser tab. Values are clamped to the handle's
+   * range (200 to 1000).
+   *
+   * Example:
+   * ```ts
+   * previewHeight: { "data-table": 640, calendar: 520 },
+   * ```
+   */
+  previewHeight?: Record<string, number>
 
   /**
    * Optional. Turns the header's theme button into a theme panel (mode,

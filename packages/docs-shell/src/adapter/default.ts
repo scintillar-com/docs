@@ -76,6 +76,10 @@ export function createDefaultAdapter(resolved: ResolvedShellConfig) {
     return resolved.categories.map((c) => ({ label: c.label }))
   }
 
+  function getPreviewHeight(name: string): number | undefined {
+    return resolved.previewHeight[name]
+  }
+
   function getComponentSource(name: string): string | null {
     const candidates = [
       path.join(paths.components, `${name}.tsx`),
@@ -106,6 +110,7 @@ export function createDefaultAdapter(resolved: ResolvedShellConfig) {
   return {
     getAllComponents,
     getCategories,
+    getPreviewHeight,
     getAllDocs: docs.getAllDocs,
     getDocBySlug: docs.getDocBySlug,
     getDocAllLocales: docs.getDocAllLocales,

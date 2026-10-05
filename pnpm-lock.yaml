@@ -138,7 +138,7 @@ importers:
   packages/registry-shell:
     dependencies:
       '@sntlr/docs-shell':
-        specifier: 2.6.1
+        specifier: 2.7.0
         version: link:../docs-shell
 
 packages:

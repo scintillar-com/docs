@@ -48,6 +48,7 @@ function buildRegistry(docs: DocsSource): RegistryAdapter | null {
   return {
     getAllComponents: overrides.getAllComponents ?? base.getAllComponents,
     getCategories: overrides.getCategories ?? base.getCategories,
+    getPreviewHeight: base.getPreviewHeight,
     getAllDocs: docs.getAllDocs,
     getDocBySlug: docs.getDocBySlug,
     getDocAllLocales: docs.getDocAllLocales,

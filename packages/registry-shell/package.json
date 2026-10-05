@@ -1,6 +1,6 @@
 {
   "name": "@sntlr/registry-shell",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "description": "Generic Next.js viewer for component registries. Drop a registry-shell.config.ts into your registry and get a full docs/components/blocks site. A preset of @sntlr/docs-shell with the registry module.",
   "keywords": [
     "shadcn",
@@ -52,6 +52,6 @@
     "prepack": "node scripts/gen-shell-stubs.mjs"
   },
   "dependencies": {
-    "@sntlr/docs-shell": "2.6.1"
+    "@sntlr/docs-shell": "2.7.0"
   }
 }
