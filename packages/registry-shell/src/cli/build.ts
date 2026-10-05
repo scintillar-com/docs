@@ -30,6 +30,7 @@ import {
   type BuildEnvOptions,
   type LoadedConfig,
 } from "./shared.js"
+import { beginPublicOverlay } from "./fs-safe.js"
 import { generateSearchIndex } from "./generate-search-index.js"
 
 export async function run(args: string[]): Promise<void> {
@@ -100,17 +101,9 @@ export const buildSite: BuildSite = async (loaded, options) => {
   const shellPublic = path.join(shellNextApp, "public")
   const userPublic = path.join(loaded.root, "public")
 
-  // Step 1: Snapshot shell's public/ before overlay so we can restore it.
-  const pristine = snapshotDir(shellPublic)
-
-  // Step 2: Overlay user's public/ onto shell's public/ (user files win).
-  if (fs.existsSync(userPublic)) {
-    for (const entry of fs.readdirSync(userPublic)) {
-      const src = path.join(userPublic, entry)
-      const dest = path.join(shellPublic, entry)
-      fs.cpSync(src, dest, { recursive: true, force: true })
-    }
-  }
+  // Steps 1-2: Overlay user's public/ onto shell's public/ (user files win),
+  // remembering the pristine state so it can be restored (see fs-safe.ts).
+  const restorePublic = beginPublicOverlay(shellPublic, userPublic)
 
   // Apply the shell env vars to THIS process so build-time generators can
   // call `loadResolvedConfig()` (which reads USER_REGISTRY_ROOT etc.).
@@ -157,7 +150,7 @@ export const buildSite: BuildSite = async (loaded, options) => {
     }
   } finally {
     // Step 6: Restore shell's public/ (remove overlay) and process.env.
-    restoreDir(shellPublic, pristine)
+    restorePublic()
     restoreEnv()
   }
 }
@@ -189,51 +182,5 @@ function applyEnv(vars: Record<string, string>): () => void {
   }
 }
 
-/** Relative path → contents of every file under `dir`. */
-export function snapshotDir(dir: string): Map<string, Buffer> {
-  const files = new Map<string, Buffer>()
-  if (!fs.existsSync(dir)) return files
-  const walk = (rel: string) => {
-    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
-      const entryRel = path.join(rel, entry.name)
-      if (entry.isDirectory()) walk(entryRel)
-      else files.set(entryRel, fs.readFileSync(path.join(dir, entryRel)))
-    }
-  }
-  walk("")
-  return files
-}
-
-/**
- * Bring `dir` back to the state captured by `snapshotDir`: delete files
- * the overlay added (and directories left empty by that), and rewrite the
- * shell's own files the overlay replaced (e.g. a user `favicon.ico`).
- * Runs on both success and failure paths.
- */
-export function restoreDir(dir: string, pristine: Map<string, Buffer>): void {
-  if (!fs.existsSync(dir)) return
-  const current = snapshotDir(dir)
-  for (const [rel, contents] of current) {
-    const original = pristine.get(rel)
-    if (!original) {
-      fs.rmSync(path.join(dir, rel), { force: true, maxRetries: 5, retryDelay: 200 })
-    } else if (!original.equals(contents)) {
-      fs.writeFileSync(path.join(dir, rel), original)
-    }
-  }
-  const keepDirs = new Set<string>()
-  for (const rel of pristine.keys()) {
-    for (let d = path.dirname(rel); d !== "." && d !== ""; d = path.dirname(d)) keepDirs.add(d)
-  }
-  const prune = (rel: string): void => {
-    for (const entry of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue
-      const entryRel = path.join(rel, entry.name)
-      prune(entryRel)
-      if (!keepDirs.has(entryRel) && fs.readdirSync(path.join(dir, entryRel)).length === 0) {
-        fs.rmSync(path.join(dir, entryRel), { recursive: true, force: true })
-      }
-    }
-  }
-  prune("")
-}
+// Kept exported for callers that imported them from here before fs-safe.ts.
+export { restoreDir, snapshotDir } from "./fs-safe.js"

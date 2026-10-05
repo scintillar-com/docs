@@ -14,6 +14,7 @@ import path from "node:path"
 import { createJiti } from "jiti"
 import type { LoadedConfig } from "./shared.js"
 import type { ResolvedShellConfig } from "../config-loader.js"
+import { writeFileFresh } from "./fs-safe.js"
 
 interface SearchItem {
   label: string
@@ -74,7 +75,7 @@ export async function generateSearchIndex(
   const outDir = path.join(targetPublicDir, "api")
   fs.mkdirSync(outDir, { recursive: true })
   const outPath = path.join(outDir, "search-index.json")
-  fs.writeFileSync(outPath, JSON.stringify(items), "utf-8")
+  writeFileFresh(outPath, JSON.stringify(items))
 
   console.log(
     `[registry-shell] Wrote search index (${items.length} items) → ${outPath}`,

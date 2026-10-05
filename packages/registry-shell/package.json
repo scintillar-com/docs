@@ -64,6 +64,9 @@
     "src/next-app/tsconfig.json",
     "src/next-app/user-aliases.d.ts",
     "!src/**/*.test.ts",
+    "!src/next-app/app/_user-sources.css",
+    "!src/next-app/app/_user-global.css",
+    "!src/next-app/public/api",
     "README.md"
   ],
   "engines": {
@@ -79,22 +82,15 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:smoke": "pnpm build && playwright test",
     "test:theme-panel": "pnpm build && playwright test -c playwright.theme-panel.config.ts"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/sortable": "^10.0.0",
-    "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "cross-env": "^7.0.3",
-    "date-fns": "^4.1.0",
     "gray-matter": "^4.0.3",
-    "input-otp": "^1.4.2",
     "jiti": "^2.4.2",
     "lucide-react": "^0.503.0",
     "next": "^15.5.14",
@@ -102,15 +98,11 @@
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
     "react": "^19.1.0",
-    "react-day-picker": "^9.14.0",
     "react-dom": "^19.1.0",
     "remark-gfm": "^4.0.1",
-    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.0",
-    "tw-animate-css": "^1.3.6",
-    "yaml": "^2.8.3",
-    "zod": "^4.3.6"
+    "tw-animate-css": "^1.3.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

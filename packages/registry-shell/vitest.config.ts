@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 const here = path.dirname(fileURLToPath(import.meta.url))
 
 // Vitest config — scoped to unit tests only. The `tests/` folder is owned
-// by Playwright (see playwright.config.ts `testDir: "./tests"`); without an
+// by Playwright (see playwright.theme-panel.config.ts `testDir: "./tests"`); without an
 // explicit `include`, Vitest would also pick up `tests/*.spec.ts` and crash
 // on Playwright's `test.describe()`. So we restrict to `src/**/*` and let
 // future unit tests live next to the code they cover.

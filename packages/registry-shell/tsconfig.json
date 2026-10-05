@@ -17,8 +17,7 @@
     "paths": {
       "@/*": ["./src/next-app/*"],
       "@shell/*": ["./src/next-app/*"],
-      "@user/previews": ["./src/next-app/fallback/previews.ts"],
-      "@user/homepage": ["./src/next-app/fallback/homepage.tsx"]
+      "@user/previews": ["./src/next-app/fallback/previews.ts"]
     }
   },
   "include": [
@@ -26,7 +25,7 @@
     "src/**/*.tsx",
     "src/next-app/next-env.d.ts",
     "src/next-app/.next/types/**/*.ts",
-    "playwright.config.ts",
+    "playwright.*.config.ts",
     "tests/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]

@@ -9,6 +9,7 @@ import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import { createJiti } from "jiti"
 import type { ShellConfig } from "../define-config.js"
+import { writeFileFresh } from "./fs-safe.js"
 
 /**
  * Absolute path to the Next.js CLI binary shipped with the shell package.
@@ -164,7 +165,7 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
     }
   }
 
-  fs.writeFileSync(stampPath, currentMode + "\n", "utf-8")
+  writeFileFresh(stampPath, currentMode + "\n")
 }
 
 export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
@@ -202,7 +203,7 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
       `@source "${rel(resolve(paths.previews?.replace(/\/index\.[tj]sx?$/, ""), "components/previews"))}";`,
     )
   }
-  fs.writeFileSync(sourcesTarget, sources.join("\n") + "\n", "utf-8")
+  writeFileFresh(sourcesTarget, sources.join("\n") + "\n")
 
   // ── _user-global.css — user's extra theme/tokens ──────────────────
   // Imported at the BOTTOM of globals.css so `:root { --primary: ... }`
@@ -223,7 +224,7 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
       }
     }
   }
-  fs.writeFileSync(globalTarget, globalLines.join("\n") + "\n", "utf-8")
+  writeFileFresh(globalTarget, globalLines.join("\n") + "\n")
 }
 
 /**

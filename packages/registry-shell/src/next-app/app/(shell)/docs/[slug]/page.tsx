@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { pageTitle } from "@shell/lib/branding"
 import { getAllDocs, getDocBySlug, getDocAllLocales } from "@shell/lib/docs"
 import { DocsToc } from "@shell/components/docs-toc"
 import { LocalizedMdx } from "@shell/components/localized-mdx"
@@ -12,7 +13,7 @@ export function generateMetadata({ params }: { params: Promise<{ slug: string }>
     const doc = getDocBySlug(slug)
     if (!doc) return {}
     return {
-      title: `${doc.meta.title} - UI Registry`,
+      title: pageTitle(doc.meta.title),
       description: doc.meta.description,
     }
   })

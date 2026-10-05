@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { pageTitle } from "@shell/lib/branding"
 import { getAllComponents } from "@shell/lib/components-nav"
 import { registry } from "@shell/registry.config"
 import { ComponentPreview } from "@shell/components/component-preview"
@@ -16,7 +17,7 @@ export function generateMetadata({ params }: { params: Promise<{ name: string }>
     const comp = getAllComponents().find((c) => c.name === name)
     if (!comp) return {}
     return {
-      title: `${comp.label} - UI Registry`,
+      title: pageTitle(comp.label),
     }
   })
 }

@@ -1,4 +1,5 @@
 import fs from "node:fs"
+import { pageTitle } from "@shell/lib/branding"
 import { notFound } from "next/navigation"
 import { compileMDX } from "next-mdx-remote/rsc"
 import remarkGfm from "remark-gfm"
@@ -13,7 +14,7 @@ import { BASE_PATH, withBasePath } from "@shell/lib/base-path"
  * other build prerenders a 404 here and the CLI drops that output (see
  * `removeReleasesPage` in src/cli/build.ts).
  */
-export const metadata = { title: "Releases - UI Registry" }
+export const metadata = { title: pageTitle("Releases") }
 
 // Plain markdown, not MDX: changelog entries are free text where `<` and
 // `{` are common and must not be parsed as JSX. Links are rebased like

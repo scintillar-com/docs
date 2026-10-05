@@ -12,7 +12,6 @@
  * in a production build. Note: changes to the user's `public/` during a
  * dev session require a restart to refresh the overlay.
  */
-import fs from "node:fs"
 import path from "node:path"
 import { spawn } from "node:child_process"
 import {
@@ -24,6 +23,7 @@ import {
   writeUserSourcesCss,
 } from "./shared.js"
 import { generateSearchIndex } from "./generate-search-index.js"
+import { beginPublicOverlay } from "./fs-safe.js"
 
 export async function run(args: string[]): Promise<void> {
   const loaded = loadUserConfig()
@@ -38,10 +38,21 @@ export async function run(args: string[]): Promise<void> {
 
   const shellNextApp = nextAppDir()
 
+  // The search-index generator reads the config through `loadResolvedConfig()`,
+  // which takes its paths from these env vars: set them on this process too
+  // (as `build` does), not only on the Next child.
+  const shellEnv = buildEnvVars(loaded)
+  Object.assign(process.env, shellEnv)
+
   // Overlay user's public/ onto shell's public/ so dev-mode URLs match
   // what production will serve statically. Skipped in shell-only mode.
+  // Undone when the dev server stops (and, after a crash, at the next run).
+  let restorePublic: () => void = () => {}
   if (loaded) {
-    overlayUserPublic(loaded.root, shellNextApp)
+    restorePublic = beginPublicOverlay(
+      path.join(shellNextApp, "public"),
+      path.join(loaded.root, "public"),
+    )
     try {
       await generateSearchIndex(loaded, path.join(shellNextApp, "public"))
     } catch (err) {
@@ -51,7 +62,7 @@ export async function run(args: string[]): Promise<void> {
     }
   }
 
-  const env = { ...process.env, ...buildEnvVars(loaded) }
+  const env = { ...process.env, ...shellEnv }
   const portArgs = loaded?.config.port ? ["-p", String(loaded.config.port)] : []
   // Webpack by default. Turbopack currently can't compile files reached via
   // the `@user/*` cross-project aliases — it treats them as native Node ESM
@@ -64,16 +75,17 @@ export async function run(args: string[]): Promise<void> {
     { stdio: "inherit", env },
   )
 
-  child.on("exit", (code) => process.exit(code ?? 0))
-}
-
-function overlayUserPublic(userRoot: string, shellNextApp: string): void {
-  const userPublic = path.join(userRoot, "public")
-  const shellPublic = path.join(shellNextApp, "public")
-  if (!fs.existsSync(userPublic)) return
-  for (const entry of fs.readdirSync(userPublic)) {
-    const src = path.join(userPublic, entry)
-    const dest = path.join(shellPublic, entry)
-    fs.cpSync(src, dest, { recursive: true, force: true })
+  // Ctrl+C reaches both processes; a plain `kill` only reaches this one, so
+  // forward it. Either way Next exits and the handler below cleans up.
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
+    process.on(signal, () => {
+      restorePublic()
+      if (child.exitCode === null) child.kill(signal)
+    })
   }
+  process.on("exit", restorePublic)
+  child.on("exit", (code) => {
+    restorePublic()
+    process.exit(code ?? 0)
+  })
 }

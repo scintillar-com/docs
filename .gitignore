@@ -16,6 +16,8 @@ fixtures/*/.next
 packages/*/src/next-app/.*-mode
 packages/*/src/next-app/app/_user-sources.css
 packages/*/src/next-app/app/_user-global.css
+packages/*/src/next-app/.registry-shell-public.json
+packages/*/src/next-app/public/api/search-index.json
 
 # TypeScript cache
 *.tsbuildinfo

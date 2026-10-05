@@ -53,3 +53,8 @@ export const branding: Required<Omit<BrandingConfig, "github">> & {
   faviconLight: withBasePath(pick("FAVICON_LIGHT", DEFAULT_BRANDING.faviconLight)),
   faviconIco: withBasePath(pick("FAVICON_ICO", DEFAULT_BRANDING.faviconIco)),
 }
+
+/** Browser-tab title for an inner page: "<page> - <site name>". */
+export function pageTitle(title: string): string {
+  return `${title} - ${branding.siteName}`
+}
