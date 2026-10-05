@@ -46,7 +46,7 @@ export async function generateSearchIndex(
   ).loadResolvedConfig()
 
   if (!resolved) {
-    console.warn("[registry-shell] generate-search-index: no resolved config, skipping")
+    console.warn("[docs-shell] generate-search-index: no resolved config, skipping")
     return
   }
 
@@ -78,6 +78,6 @@ export async function generateSearchIndex(
   writeFileFresh(outPath, JSON.stringify(items))
 
   console.log(
-    `[registry-shell] Wrote search index (${items.length} items) → ${outPath}`,
+    `[docs-shell] Wrote search index (${items.length} items) → ${outPath}`,
   )
 }

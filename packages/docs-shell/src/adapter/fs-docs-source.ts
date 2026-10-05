@@ -125,7 +125,7 @@ export function createFsDocsSource(resolved: ResolvedShellConfig): DocsSource {
         if (!warned.has(file)) {
           warned.add(file)
           console.warn(
-            `[registry-shell] docs: both ${path.join(locale, `${slug}.mdx`)} and ${path.basename(file)} exist; using the ${locale}/ folder.`,
+            `[docs-shell] docs: both ${path.join(locale, `${slug}.mdx`)} and ${path.basename(file)} exist; using the ${locale}/ folder.`,
           )
         }
         continue

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * @sntlr/registry-shell CLI entry.
+ * @sntlr/docs-shell CLI entry (also run as `registry-shell` by @sntlr/registry-shell).
  *
  * Commands:
- *   init    Scaffold registry-shell.config.ts and add scripts to package.json.
+ *   init    Scaffold docs-shell.config.ts (or registry-shell.config.ts) and add scripts.
  *   dev     Run `next dev` for local iteration on the registry.
  *   build   Produce a static export in `<user-project>/out/` (Storybook-style).
  *
@@ -12,10 +12,12 @@
  * (`npx serve out`, Vercel, Netlify, S3, etc.).
  */
 
-const USAGE = `Usage: registry-shell <command> [args]
+import { CLI_NAME } from "./cli-name.js"
+
+const USAGE = `Usage: ${CLI_NAME} <command> [args]
 
 Commands:
-  init            Scaffold registry-shell.config.ts in the current project.
+  init            Scaffold ${CLI_NAME}.config.ts in the current project.
   dev             Start the shell in dev mode on http://localhost:3000.
   build           Produce a static export in ./out (deploy anywhere).
 `
@@ -40,7 +42,7 @@ async function main() {
       break
     case "start":
       console.error(
-        "[registry-shell] `start` was removed in v2.0.0. `build` now produces a static site — serve `./out` with any static host (e.g. `npx serve out`).",
+        "[docs-shell] `start` was removed in v2.0.0. `build` now produces a static site — serve `./out` with any static host (e.g. `npx serve out`).",
       )
       process.exit(1)
     default:

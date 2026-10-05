@@ -56,10 +56,18 @@ const next = ["patch", "minor", "major"].includes(arg) ? bump(current, arg) : ar
 if (!SEMVER.test(next)) fail(`"${next}" is not a valid version`)
 if (git("tag", "--list", `v${next}`)) fail(`tag v${next} already exists`)
 
+// Packages depend on each other at the exact shared version (e.g.
+// @sntlr/registry-shell -> @sntlr/docs-shell), so bump those pins too.
+const names = pkgFiles.map((f) => JSON.parse(fs.readFileSync(f, "utf8")).name)
+const escape = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")
 for (const f of pkgFiles) {
   const raw = fs.readFileSync(f, "utf8")
-  // Only touch the "version" field, so formatting and line endings stay as they are.
-  const updated = raw.replace(/("version"\s*:\s*")[^"]+(")/, `$1${next}$2`)
+  // Only touch the "version" field and internal dependency pins, so
+  // formatting and line endings stay as they are.
+  let updated = raw.replace(/("version"\s*:\s*")[^"]+(")/, `$1${next}$2`)
+  for (const name of names) {
+    updated = updated.replace(new RegExp(`("${escape(name)}"\\s*:\\s*")[^"]+(")`, "g"), `$1${next}$2`)
+  }
   fs.writeFileSync(f, updated)
   git("add", path.relative(root, f))
 }

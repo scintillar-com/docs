@@ -24,7 +24,12 @@ export const NEXT_BIN = requireFromHere.resolve("next/dist/bin/next")
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
+// docs-shell's own name first; registry-shell.config.* keeps working for
+// every existing site (and is what `registry-shell init` writes).
 export const CONFIG_FILE_CANDIDATES = [
+  "docs-shell.config.ts",
+  "docs-shell.config.js",
+  "docs-shell.config.mjs",
   "registry-shell.config.ts",
   "registry-shell.config.js",
   "registry-shell.config.mjs",
@@ -57,7 +62,7 @@ export function nextAppDir(): string {
   if (fs.existsSync(srcNextApp)) return srcNextApp
 
   throw new Error(
-    `[registry-shell] Couldn't locate the bundled Next app. Looked in:\n  ${distNextApp}\n  ${srcNextApp}`,
+    `[docs-shell] Couldn't locate the bundled Next app. Looked in:\n  ${distNextApp}\n  ${srcNextApp}`,
   )
 }
 
@@ -89,7 +94,7 @@ export function loadUserConfigFile(configPath: string): LoadedConfig {
 
   if (!config?.branding) {
     throw new Error(
-      `[registry-shell] Invalid config at ${configPath}: missing required \`branding\`.`,
+      `[docs-shell] Invalid config at ${configPath}: missing required \`branding\`.`,
     )
   }
 
@@ -133,7 +138,7 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
 
   if (fs.existsSync(nextDir) && previousMode !== currentMode) {
     console.log(
-      `[registry-shell] Mode changed (${previousMode} → ${currentMode}) — clearing .next cache.`,
+      `[docs-shell] Mode changed (${previousMode} → ${currentMode}) — clearing .next cache.`,
     )
     // Windows can hold file locks (antivirus, IDE indexers) for a moment
     // after the previous Next process exits. Retry a few times; if the
@@ -157,10 +162,10 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
             retryDelay: 200,
           })
         }
-        console.log("[registry-shell] Directory locked — cleared contents instead.")
+        console.log("[docs-shell] Directory locked — cleared contents instead.")
       } catch (err) {
         console.warn(
-          `[registry-shell] Couldn't clear .next cache cleanly (${(err as Error).message}). ` +
+          `[docs-shell] Couldn't clear .next cache cleanly (${(err as Error).message}). ` +
             `Continuing; you may see stale-build warnings.`,
         )
       }
@@ -252,7 +257,7 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
       const abs = path.resolve(loaded.root, userGlobal)
       if (!fs.existsSync(abs)) {
         console.warn(
-          `[registry-shell] paths.globalCss points at ${abs} but the file doesn't exist — skipping.`,
+          `[docs-shell] paths.globalCss points at ${abs} but the file doesn't exist — skipping.`,
         )
       } else {
         globalLines.push(`@import "${rel(abs)}";`)

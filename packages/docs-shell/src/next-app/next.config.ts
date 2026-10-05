@@ -58,6 +58,14 @@ const BASE_PATH = process.env.NEXT_PUBLIC_SHELL_BASE_PATH || undefined
 const MODULES = (process.env.SHELL_MODULES ?? "").split(",").filter(Boolean)
 const PAGE_EXTENSIONS = [...MODULES.map((m) => `${m}.tsx`), "tsx", "ts", "jsx", "js"]
 
+// Registry previews import shell helpers as `@sntlr/registry-shell/shell/*`
+// (e.g. hooks/use-controls), from before the engine moved to
+// @sntlr/docs-shell. Point that path at this app's own files, so a preview
+// and the shell share one module instance (one React context), whichever
+// package the import names.
+const REGISTRY_SHELL_SUBPATH = "@sntlr/registry-shell/shell"
+const DOCS_SHELL_SUBPATH = "@sntlr/docs-shell/shell"
+
 const nextConfig: NextConfig = {
   ...(BASE_PATH ? { basePath: BASE_PATH } : {}),
 
@@ -83,6 +91,7 @@ const nextConfig: NextConfig = {
   // transpile it by default. The registry can list additional packages via
   // `transpilePackages` in its config (CLI forwards as USER_TRANSPILE_PACKAGES).
   transpilePackages: [
+    "@sntlr/docs-shell",
     "@sntlr/registry-shell",
     ...(process.env.USER_TRANSPILE_PACKAGES
       ? process.env.USER_TRANSPILE_PACKAGES.split(",").filter(Boolean)
@@ -110,6 +119,8 @@ const nextConfig: NextConfig = {
       : toPosix(findCommonRoot(HERE, USER_ROOT ?? process.cwd())),
     resolveAlias: {
       "@user/previews": USER_PREVIEWS,
+      [REGISTRY_SHELL_SUBPATH]: toPosix(HERE),
+      [DOCS_SHELL_SUBPATH]: toPosix(HERE),
     },
   },
 
@@ -120,6 +131,8 @@ const nextConfig: NextConfig = {
       "@user/previews": USER_PREVIEWS,
       // Shell's internal alias — its own files.
       "@shell": toPosix(HERE),
+      [REGISTRY_SHELL_SUBPATH]: toPosix(HERE),
+      [DOCS_SHELL_SUBPATH]: toPosix(HERE),
       // shadcn convention: the registry's component files use `@/` for their
       // own project root. Registry sites only; a docs-only site has no such
       // files and keeps `@` free.

@@ -40,7 +40,9 @@ export default defineConfig({
   ],
   webServer: {
     // Trailing `-p` wins over the fixture's `port: 3100`.
-    command: `node ../../packages/registry-shell/dist/cli/index.js dev -p ${port}`,
+    // Through the registry-shell preset: exercises its bin and the
+    // `@sntlr/registry-shell/shell/*` imports in the fixture previews.
+    command: `node ../../packages/registry-shell/bin/registry-shell.js dev -p ${port}`,
     cwd: fixtureDir,
     url: `http://localhost:${port}`,
     timeout: 180_000,

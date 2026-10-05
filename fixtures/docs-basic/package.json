@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "shell": "registry-shell dev",
-    "shell:build": "registry-shell build"
+    "shell": "docs-shell dev",
+    "shell:build": "docs-shell build"
   },
   "devDependencies": {
-    "@sntlr/registry-shell": "workspace:*",
+    "@sntlr/docs-shell": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   }

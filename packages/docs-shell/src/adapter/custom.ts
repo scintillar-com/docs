@@ -61,7 +61,7 @@ export function loadCustomAdapterOverrides(
     loaded = jiti(resolved.adapter)
   } catch (err) {
     throw new Error(
-      `[registry-shell] Failed to load custom adapter at ${resolved.adapter}: ` +
+      `[docs-shell] Failed to load custom adapter at ${resolved.adapter}: ` +
         (err instanceof Error ? err.message : String(err)),
     )
   }
@@ -75,7 +75,7 @@ export function loadCustomAdapterOverrides(
     const overrides = (extracted as AdapterFactory)(resolved)
     if (!overrides || typeof overrides !== "object") {
       throw new Error(
-        `[registry-shell] Custom adapter factory at ${resolved.adapter} did not return an object.`,
+        `[docs-shell] Custom adapter factory at ${resolved.adapter} did not return an object.`,
       )
     }
     return overrides
@@ -86,6 +86,6 @@ export function loadCustomAdapterOverrides(
   }
 
   throw new Error(
-    `[registry-shell] Custom adapter at ${resolved.adapter} must default-export a factory function or an object.`,
+    `[docs-shell] Custom adapter at ${resolved.adapter} must default-export a factory function or an object.`,
   )
 }

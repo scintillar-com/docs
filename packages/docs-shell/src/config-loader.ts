@@ -95,7 +95,7 @@ export function loadResolvedConfig(): ResolvedShellConfig | null {
 
   if (!fs.existsSync(configPath)) {
     throw new Error(
-      `[registry-shell] Config file not found: ${configPath}. ` +
+      `[docs-shell] Config file not found: ${configPath}. ` +
         `Check USER_CONFIG_PATH.`,
     )
   }
@@ -106,12 +106,12 @@ export function loadResolvedConfig(): ResolvedShellConfig | null {
 
   if (!config?.branding) {
     throw new Error(
-      `[registry-shell] Invalid config at ${configPath}: missing required \`branding\`.`,
+      `[docs-shell] Invalid config at ${configPath}: missing required \`branding\`.`,
     )
   }
   if (config.multilocale && !config.defaultLocale) {
     throw new Error(
-      `[registry-shell] Invalid config at ${configPath}: \`multilocale\` is true but \`defaultLocale\` is missing.`,
+      `[docs-shell] Invalid config at ${configPath}: \`multilocale\` is true but \`defaultLocale\` is missing.`,
     )
   }
 

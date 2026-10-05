@@ -1,4 +1,4 @@
-import { defineConfig } from "@sntlr/registry-shell"
+import { defineConfig } from "@sntlr/docs-shell"
 
 /**
  * Docs-only fixture: documentation pages, no components or blocks. Checks
@@ -6,7 +6,7 @@ import { defineConfig } from "@sntlr/registry-shell"
  * empty Components section) and exercises `<slug>.<locale>.mdx`
  * translations in the single-folder layout.
  *
- *   pnpm --filter docs-basic shell        # dev, port 3110
+ *   pnpm --filter docs-basic shell        # dev (docs-shell), port 3110
  *   pnpm --filter docs-basic shell:build  # static export to out/
  *
  * Not in package.json#files, so it never ships to consumers.

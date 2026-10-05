@@ -28,9 +28,9 @@ import { beginPublicOverlay } from "./fs-safe.js"
 export async function run(args: string[]): Promise<void> {
   const loaded = loadUserConfig()
   if (loaded) {
-    console.log(`[registry-shell] Using config: ${loaded.configPath}`)
+    console.log(`[docs-shell] Using config: ${loaded.configPath}`)
   } else {
-    console.log(`[registry-shell] No registry-shell.config.ts found — running in shell-only mode.`)
+    console.log(`[docs-shell] No docs-shell.config.ts or registry-shell.config.ts found — running in shell-only mode.`)
   }
 
   clearStaleNextCacheIfModeChanged(loaded)
@@ -57,7 +57,7 @@ export async function run(args: string[]): Promise<void> {
       await generateSearchIndex(loaded, path.join(shellNextApp, "public"))
     } catch (err) {
       console.warn(
-        `[registry-shell] search-index generation failed: ${(err as Error).message}`,
+        `[docs-shell] search-index generation failed: ${(err as Error).message}`,
       )
     }
   }

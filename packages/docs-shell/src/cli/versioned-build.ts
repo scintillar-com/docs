@@ -83,7 +83,7 @@ interface CacheMeta {
   hasRegistry: boolean
 }
 
-const log = (msg: string) => console.log(`[registry-shell] ${msg}`)
+const log = (msg: string) => console.log(`[docs-shell] ${msg}`)
 
 export async function runVersionedBuild(
   options: VersionedBuildOptions,
@@ -355,7 +355,7 @@ function runCommand(command: string, cwd: string, label: string): Promise<void> 
     child.on("error", reject)
     child.on("exit", (code) => {
       if (code === 0) resolve()
-      else reject(new Error(`[registry-shell] versions: ${label} failed (exit ${code}): ${command}`))
+      else reject(new Error(`[docs-shell] versions: ${label} failed (exit ${code}): ${command}`))
     })
   })
 }
@@ -388,7 +388,7 @@ function gitTopLevel(dir: string): string {
     return fs.realpathSync(git(dir, ["rev-parse", "--show-toplevel"]).trim())
   } catch {
     throw new Error(
-      `[registry-shell] \`versions\` needs the registry to live in a git repository (tags are read from git); ${dir} isn't one.`,
+      `[docs-shell] \`versions\` needs the registry to live in a git repository (tags are read from git); ${dir} isn't one.`,
     )
   }
 }

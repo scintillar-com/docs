@@ -33,7 +33,7 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"], viewport: { width: 375, height: 812 } } },
   ],
   webServer: {
-    command: `node ../../packages/registry-shell/dist/cli/index.js build && node ../../scripts/serve-static.mjs out ${port}`,
+    command: `node ../../packages/docs-shell/dist/cli/index.js build && node ../../scripts/serve-static.mjs out ${port}`,
     cwd: fixtureDir,
     url: `http://localhost:${port}`,
     timeout: 300_000,

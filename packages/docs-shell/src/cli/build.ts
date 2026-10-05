@@ -37,7 +37,7 @@ export async function run(args: string[]): Promise<void> {
   const loaded = loadUserConfig()
   if (!loaded) {
     console.error(
-      "[registry-shell] No registry-shell.config.ts found — `build` requires a registry.",
+      "[docs-shell] No docs-shell.config.ts or registry-shell.config.ts found — `build` requires a config.",
     )
     process.exit(1)
   }
@@ -72,7 +72,7 @@ export async function buildRegistry(
 /** `next build` exited non-zero; carries its exit code up to `run`. */
 export class BuildExitError extends Error {
   constructor(public readonly code: number) {
-    super(`[registry-shell] next build exited with code ${code}`)
+    super(`[docs-shell] next build exited with code ${code}`)
   }
 }
 
@@ -118,7 +118,7 @@ export const buildSite: BuildSite = async (loaded, options) => {
       await generateSearchIndex(loaded, shellPublic)
     } catch (err) {
       console.warn(
-        `[registry-shell] search-index generation failed: ${(err as Error).message}`,
+        `[docs-shell] search-index generation failed: ${(err as Error).message}`,
       )
     }
 
@@ -146,7 +146,7 @@ export const buildSite: BuildSite = async (loaded, options) => {
       // Remove the build output from inside node_modules so it doesn't
       // accumulate stale copies across releases.
       fs.rmSync(src, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 })
-      console.log(`[registry-shell] Static build ready at ${outDir}`)
+      console.log(`[docs-shell] Static build ready at ${outDir}`)
     }
   } finally {
     // Step 6: Restore shell's public/ (remove overlay) and process.env.

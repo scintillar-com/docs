@@ -15,15 +15,21 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const cli = path.join(root, "packages/registry-shell/dist/cli/index.js")
-const FIXTURES = ["docs-basic", "dev-registry"]
+const engineCli = path.join(root, "packages/docs-shell/dist/cli/index.js")
+// Each fixture is built through the CLI its users run: the docs site with
+// `docs-shell`, the registry through the `registry-shell` preset's bin.
+const FIXTURE_CLI = {
+  "docs-basic": engineCli,
+  "dev-registry": path.join(root, "packages/registry-shell/bin/registry-shell.js"),
+}
+const FIXTURES = Object.keys(FIXTURE_CLI)
 
 const args = process.argv.slice(2)
 const update = args.includes("--update")
 const only = args.filter((a) => !a.startsWith("--"))
 const fixtures = only.length ? FIXTURES.filter((f) => only.includes(f)) : FIXTURES
 
-if (!fs.existsSync(cli)) {
+if (!fs.existsSync(engineCli)) {
   console.error("check-fixture-routes: CLI not built; run `pnpm build` first.")
   process.exit(1)
 }
@@ -53,7 +59,7 @@ for (const name of fixtures) {
   // variable decide for it.
   delete env.SHELL_MODULES
   console.log(`check-fixture-routes: building ${name}…`)
-  const build = spawnSync(process.execPath, [cli, "build"], { cwd: dir, env, encoding: "utf8" })
+  const build = spawnSync(process.execPath, [FIXTURE_CLI[name], "build"], { cwd: dir, env, encoding: "utf8" })
   if (build.status !== 0) {
     console.error(build.stdout.slice(-3000), build.stderr.slice(-3000))
     console.error(`check-fixture-routes: ${name} failed to build`)
