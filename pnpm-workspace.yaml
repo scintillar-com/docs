@@ -1,3 +1,8 @@
 packages:
   - "packages/*"
   - "fixtures/*"
+
+# packages/registry-shell depends on @sntlr/docs-shell at an exact version
+# (not workspace:*, which `npm publish` would ship unresolved). Link it to
+# the local package instead of fetching it from the registry.
+linkWorkspacePackages: true

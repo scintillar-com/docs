@@ -1,0 +1,14 @@
+{
+  "name": "docs-nested",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "shell": "docs-shell dev",
+    "shell:build": "docs-shell build"
+  },
+  "devDependencies": {
+    "@sntlr/docs-shell": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

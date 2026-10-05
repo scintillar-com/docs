@@ -1,0 +1,9 @@
+/
+/404/
+/docs/guides/
+/docs/guides/advanced/
+/docs/guides/advanced/caching/
+/docs/guides/recipes/deploy/
+/docs/guides/start/
+/docs/reference/api/
+/docs/welcome/

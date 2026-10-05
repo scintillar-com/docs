@@ -1,0 +1,609 @@
+# @sntlr/docs-shell
+
+A static documentation site from a folder of MDX: drop a config file into
+your project, run one command, and get a site with navigation, search,
+dark mode, translations, versioned docs and a theme panel, exported as
+static HTML you can host anywhere. No wiring, no shell code to fork.
+
+It also has an optional **registry module** for shadcn-compatible component
+registries: component pages, live previews with controls, install commands,
+props, accessibility and test tabs. [`@sntlr/registry-shell`](https://www.npmjs.com/package/@sntlr/registry-shell)
+is the preset for registries: same engine, its historical `registry-shell`
+command and config file name. Everything below applies to both.
+
+## Quickstart
+
+A documentation site:
+
+```bash
+cd my-docs/
+npm install -D @sntlr/docs-shell
+npx docs-shell init          # scaffolds docs-shell.config.ts + scripts
+npm run shell                # boots the shell against your project
+```
+
+A component registry:
+
+```bash
+cd my-registry/
+npm install -D @sntlr/registry-shell
+npx registry-shell init      # scaffolds registry-shell.config.ts + scripts
+npm run shell
+```
+
+Visit <http://localhost:3000> — you'll see your MDX docs (and, for a
+registry, your components and blocks) rendered with the shell's chrome
+(sidebar, topbar, locale toggle, dark mode, and for components the install
+command, preview and source tabs).
+
+Both commands read either config file name (`docs-shell.config.ts` first,
+then `registry-shell.config.ts`); the examples below use
+`registry-shell.config.ts`, and `import { defineConfig }` works from either
+package.
+
+## Configuration
+
+Edit `registry-shell.config.ts` at the root of your registry:
+
+```ts
+import { defineConfig } from "@sntlr/registry-shell"
+
+export default defineConfig({
+  branding: {
+    siteName: "My UI",
+    shortName: "UI",
+    siteUrl: "https://ui.example.com",
+    github: { owner: "my-org", repo: "my-ui" },
+  },
+
+  // All path overrides are optional — these are the defaults:
+  // paths: {
+  //   components:   "components/ui",
+  //   blocks:       "registry/new-york/blocks",
+  //   previews:     "components/previews/index.ts",
+  //   docs:         "content/docs",
+  //   registryJson: "public/r",
+  //   globalCss:    "./styles/theme.css",  // optional, see "Custom CSS"
+  //   buildOutput:  ".next",                // optional, override if `.next` collides
+  // },
+
+  // themePanel: { since: "1.0.0" },   // optional, see "Theme panel"
+  // categories: { Forms: ["input", "select"], Layout: ["card"] },
+  // previewHeight: { "data-table": 640 }, // optional, see "Component pages"
+})
+```
+
+The only required field is `branding`. Everything else follows shadcn
+conventions out of the box.
+
+### Component pages
+
+**Sidebar categories.** `categories` groups components into collapsible
+sections of the Components sidebar. Sections appear in the order you
+declare the keys; components not listed anywhere go into a final "Base"
+section (heading translatable via the `sidebar.base` key in
+`extraTranslations`). Inside a section, components are sorted by label.
+
+**Preview height.** Each component page shows its preview in a resizable
+box, 384px tall by default (600px on phones). `previewHeight` sets a
+different starting height per component, in pixels, keyed by component
+name:
+
+```ts
+previewHeight: {
+  "data-table": 640,
+  calendar: 520,
+},
+```
+
+Values are clamped to the resize range (200 to 1000). Once a visitor
+drags the resize handle, their height is kept for the rest of the browser
+tab and wins over the configured one.
+
+**Interacting with a preview.** The preview sits on a pan/zoom canvas.
+Scrolling over the component scrolls it (lists, scroll areas); scrolling
+over the empty canvas, Ctrl/Cmd + scroll or a trackpad pinch zooms. Arrow
+keys pan, `+` / `-` zoom and `0` recenters, except while focus is in one of
+the component's inputs or widgets (sliders, tabs, menus, listboxes...). A
+preview whose root is `w-full` takes the canvas width; narrower ones stay
+centred.
+
+## How it works
+
+The shell is a published Next.js app. The CLI (`registry-shell`) resolves
+the bundled app inside `node_modules/@sntlr/registry-shell`, injects
+environment variables pointing at your project (`USER_REGISTRY_ROOT`,
+`USER_CONFIG_PATH`), and spawns `next dev` / `next build` / `next start`
+against it.
+
+A convention-based adapter inside the shell reads your filesystem at server
+startup: `components/ui/*.tsx` for components, `registry/new-york/blocks/*/`
+for blocks, `content/docs/*.mdx` for docs, `public/r/*.json` for the
+shadcn-compatible registry JSON. Everything is pull-based — the shell never
+writes to your project (except a `.next` build cache inside its own install
+location).
+
+Previews are imported from your project's `components/previews/index.ts` via
+a Next.js alias, so `next/dynamic()` with string-literal paths keeps working.
+The shell's `/` route always renders a built-in component/block listing —
+for a branded marketing landing, host it on a separate site.
+
+## Commands
+
+| Command                  | What it does                                        |
+|--------------------------|-----------------------------------------------------|
+| `registry-shell init`    | Scaffold `registry-shell.config.ts` + npm scripts   |
+| `registry-shell dev`     | Dev server on `localhost:3000`                      |
+| `registry-shell build`   | Static export → `./out/` (deploy anywhere)          |
+
+If your registry has no config file, the shell runs in "shell-only" mode and
+renders its built-in getting-started docs so you can preview the chrome
+before wiring anything up.
+
+## Custom CSS / theme tokens
+
+To add brand fonts, override design tokens, or register extra
+Tailwind `@source` scan paths, set `paths.globalCss` to a `.css` file in
+your project:
+
+```css
+/* styles/theme.css */
+@font-face {
+  font-family: "Brand Sans";
+  src: url("/fonts/brand-sans.woff2") format("woff2");
+}
+
+/* Override the shell's primary color (light + dark) */
+:root { --primary: oklch(0.6 0.2 280); }
+.dark { --primary: oklch(0.75 0.18 280); }
+
+/* Scan an extra directory for Tailwind utilities */
+@source "../content/marketing";
+```
+
+The file is `@import`ed at the very end of the shell's `globals.css`, so
+your `:root` token redefinitions win the cascade against the shell's
+defaults. Edits require a CLI restart to pick up (the CSS path is resolved
+at boot); the file's contents are hot-reloaded as usual.
+
+## Theme panel
+
+Off by default. Set `themePanel` to turn the header's sun/moon button into a
+small theme panel, so visitors can try your theme with their own brand color
+before installing it:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  themePanel: {
+    since: "1.0.0",                        // optional, see below
+    controls: ["mode", "primary", "tint"], // optional, this is the default
+  },
+})
+```
+
+The panel has:
+
+- **Mode**: light, dark or system (the same setting the plain toggle changes).
+- **Primary color**: a color swatch and a hex input. Sets `--primary`.
+- **Surface tint**: a slider from 0 to 2 (step 0.05) with a reset. Sets
+  `--surface-tint`.
+- **Copy CSS**: copies the resulting variables, ready to paste into your
+  app's theme file:
+
+  ```css
+  :root {
+    --primary: #3b82f6;
+    --surface-tint: 1.25;
+  }
+  ```
+
+  Values you didn't change are copied as the theme defines them. If the
+  clipboard is unavailable, the CSS is shown in a text box to copy by hand.
+
+The panel writes `--primary` and `--surface-tint` as inline custom
+properties on `<html>`, so they win over `:root` and `.dark` and apply in
+both modes. It's meant for themes that derive their surfaces from those two
+variables (for example with CSS relative colors); with a theme that ignores
+`--surface-tint`, only the primary color changes.
+
+Changes apply live to the docs and to the component preview iframes, and
+are saved in the visitor's browser (localStorage, key
+`registry-shell:theme-overrides`); a reload applies them before first
+paint. Previews follow through shared storage events and, where storage is
+blocked, same-origin `postMessage`. "Reset all" goes back to your theme.
+
+`controls` picks which sections appear, in order. Unknown entries are
+ignored; an empty list means all three.
+
+`since` is for versioned docs: versions older than `since` keep the plain
+toggle (their theme predates the variables the panel sets). On an
+unversioned site, `since` has no effect and the panel is always on.
+With `versions` on, each snapshot is compared to `since`; the latest
+site always shows the panel.
+
+## Docs-only sites
+
+The shell also works as a plain documentation site, with no component
+registry. A project with docs but no components or blocks gets:
+
+- a homepage listing its pages (site name and description from `branding`);
+- no Components or Blocks sections, and no `/components` or `/preview` pages
+  in the build.
+
+This is automatic: the registry part of the shell (the "registry module") is
+on when the project has `.tsx` files in `paths.components`, entries in
+`paths.blocks`, or a custom `adapter`, and off otherwise. To decide
+explicitly:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  modules: { registry: false }, // or true
+})
+```
+
+Translations for a single-folder docs site sit next to their page as
+`<slug>.<locale>.mdx` (`intro.fr.mdx` beside `intro.mdx`). List the locales
+to show the language toggle:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  defaultLocale: "en",
+  locales: ["en", "fr"],
+})
+```
+
+A file only counts as a translation when its base page exists, so a page
+whose name contains a dot (`v1.2-notes.mdx`) keeps its URL.
+
+### Organizing pages: sections and folders
+
+Pages can be nested in folders; the URL follows the path
+(`content/docs/guides/advanced/caching.mdx` → `/docs/guides/advanced/caching`).
+A flat docs folder keeps the URLs it always had.
+
+- **Sections.** Each top-level folder is a section: its own header tab,
+  sidebar block and homepage card. Pages at the root of the docs folder
+  stay under the "Documentation" tab.
+- **Folder pages.** A folder's `_index.mdx` (or `index.mdx`) answers at the
+  folder's URL (`/docs/guides/advanced`) and gives the folder its title and
+  sidebar position (`order`). A folder without one is a plain sidebar
+  heading, title-cased from its name, with no URL of its own.
+- **Order.** Pages and folders sort by `order` in frontmatter, then by
+  title. The sidebar remembers which folders a reader collapsed, and the
+  desktop sidebar can be resized by dragging its right edge.
+- **Translations.** Either `<name>.<locale>.mdx` beside the page (folder
+  pages too: `_index.fr.mdx`), or a folder per locale mirroring the tree
+  (`content/docs/en/guides/start.mdx`, `content/docs/fr/guides/start.mdx`);
+  with locale folders, the default locale's folder defines the pages.
+
+Sections are discovered from disk (alphabetically, with a title-cased
+label). Declare them to set the label, icon and order:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  sections: [
+    { dir: "guides", label: "User guide", icon: "Rocket" },
+    { dir: "reference", icon: "Code2" },
+  ],
+})
+```
+
+Declared sections come first, in that order; folders not listed follow.
+Icons: `BookOpen` (default), `Boxes`, `Code2`, `Cog`, `FileText`,
+`GraduationCap`, `Layers`, `LifeBuoy`, `Lightbulb`, `Rocket`, `Scale`,
+`ShieldCheck`, `Terminal`, `Wrench`.
+
+## Search
+
+The header's search (`Ctrl`/`⌘` + `K`) is built with the site, so it
+works on a static host with no server. It finds words in the text, not
+only in titles: each page is indexed by heading (one entry for its opening,
+one per `##`, `###` and `####` heading with the text under it), and a
+result opens the page at that heading. Components and blocks are listed by
+name.
+
+Results show the heading, its page and a few words around the match, and
+can be narrowed to one section of the site once they span several. Each
+language has its own index (`api/search-index.json` for the default
+locale, `api/search-index.<locale>.json` for the others), and the search
+uses the one of the active language. Nothing to configure.
+
+## Preparing content from another repository
+
+When a site's pages are written in another repository (Markdown next to
+the code it documents, say), a sync script copies them into
+`content/docs` before the build. `@sntlr/docs-shell/content` has the
+generic parts of such a script:
+
+```ts
+import {
+  escapeMdx, rewriteLinks, docsRouteFor, splitFrontmatter,
+  formatFrontmatter, firstHeading, firstParagraph, copyAssets,
+} from "@sntlr/docs-shell/content"
+
+const mappings = [
+  { from: "docs/guides", to: "guides" },          // repo folder → /docs/guides
+  { from: "docs/guides/api", to: "reference" },   // the longest match wins
+]
+
+const { data, body } = splitFrontmatter(source)
+let mdx = escapeMdx(body)                         // plain Markdown → valid MDX
+mdx = rewriteLinks(mdx, "docs/guides", (path, hash) =>
+  path.endsWith(".png")
+    ? `/docs-assets/${path.split("/").pop()}`
+    : (docsRouteFor(path, mappings) ?? `https://github.com/org/repo/blob/${ref}/${path}`) + hash,
+)
+const page =
+  formatFrontmatter({
+    title: data.title ?? firstHeading(body) ?? "Untitled",
+    description: data.description ?? firstParagraph(body),
+  }) + mdx
+
+copyAssets("../repo/docs/assets", "public/docs-assets")
+```
+
+- `escapeMdx`: escapes `<` and `{` outside code (MDX would read them as
+  JSX and expressions) and turns `<https://…>` autolinks into links.
+- `rewriteLinks`: passes every relative link (resolved against the file's
+  folder, repo-relative) to your function; code and absolute URLs are left
+  alone.
+- `docsRouteFor`: a repo path's URL on the site, by the longest matching
+  mapping; `_index.md` / `index.md` go to their folder's URL.
+- `splitFrontmatter`, `formatFrontmatter`, `firstHeading`,
+  `firstParagraph`: read what a page has, derive what it lacks.
+- `copyAssets`: copies images into `public/` (flattened by default).
+- `slugify`, `flattenMarkdown`, `splitSections`, `pageSearchRecords`: the
+  heading anchors and search records the shell itself uses.
+
+## Advanced: custom adapters
+
+For non-convention registries (database-backed metadata, non-MDX docs, etc.)
+point `adapter` at a TypeScript module:
+
+```ts
+// registry-shell.config.ts
+export default defineConfig({
+  branding: { ... },
+  adapter: "./custom-adapter",
+})
+```
+
+```ts
+// custom-adapter.ts
+import type { ResolvedShellConfig } from "@sntlr/registry-shell"
+
+export default function (_resolved: ResolvedShellConfig) {
+  return {
+    // Override only the methods you need — the rest fall through to the
+    // convention-based defaults.
+    getAllComponents: () => [
+      { name: "my-button", label: "Button", kind: "component" as const },
+    ],
+  }
+}
+```
+
+The factory is called once at server startup with the resolved config. It
+may return any subset of the adapter interface; omitted methods use the
+defaults.
+
+## Requirements
+
+- Node.js ≥ 18.18
+- `react` and `react-dom` installed in your project (dev dependencies are
+  fine). Next.js, TypeScript and its type packages come with the shell.
+- Your project uses Next.js 15 conventions (or at least its `public/`,
+  `components/`, `content/` layout — the shell doesn't care if you use
+  Next.js itself).
+
+## Deploying
+
+`registry-shell build` produces a **pure static export** under `./out/` —
+HTML, JS, CSS, and JSON files with no server runtime required. Same
+deployment model as Storybook, Docusaurus, MkDocs, etc.
+
+Deploy `out/` to anything that serves static files:
+
+- **Vercel** — push the repo, Vercel auto-detects Next.js with
+  `output: "export"` and serves `out/` from its edge CDN. No custom
+  build command, no Output Directory override. Just push.
+- **Netlify** — `netlify.toml` with `publish = "out"`.
+- **GitHub Pages** — upload `out/` as the Pages artifact.
+- **S3 / CloudFront** — `aws s3 sync out/ s3://your-bucket/`.
+- **Local / self-host** — `npx serve out/` or any static file server.
+
+The shadcn URL contract is preserved: `https://your-domain/r/button.json`
+serves the same bytes consumers' `npx shadcn add` commands expect.
+
+> v1.x users: the shell previously produced a serverful Next.js build
+> that needed Vercel's `@vercel/next` integration. v2.0 switched to
+> static export to sidestep an entire class of file-tracing issues
+> when the shell's Next app lives inside `node_modules`. The trade-off
+> is no runtime SSR / no API routes — registries that need those
+> patterns aren't served by this shell.
+
+## Versioned docs and registry
+
+Opt in with `versions` to publish a frozen, browsable copy of every release
+next to the latest site:
+
+```ts
+// registry-shell.config.ts
+export default defineConfig({
+  branding: { ... },
+  versions: {
+    // All optional — these are the defaults:
+    // tags: "v*",                                           // git tag glob
+    // cacheDir: "node_modules/.cache/registry-shell/versions",
+    // registryBuildCommand: "npx shadcn build",
+    // installCommand: <detected from the lockfile>,
+    // changelog: "CHANGELOG.md",                            // Releases page source
+  },
+})
+```
+
+`registry-shell build` then produces:
+
+| URL                     | Content                                               |
+|-------------------------|-------------------------------------------------------|
+| `/`                     | Latest site, built from the working tree (as before)  |
+| `/r/<name>.json`        | Latest registry JSON                                  |
+| `/v/<version>/`         | Frozen site of each matching tag                      |
+| `/r/v<version>/<name>.json` | Frozen registry JSON of each matching tag         |
+| `/versions.json`        | Manifest: `{ latest, current, versions: [{ version, tag, commit, date, isLatest, path, registry, source? }] }` |
+| `/changes/<name>.json`  | Change history of each registry item, read by the "Changes" tab |
+| `/releases/`            | Releases page, when the changelog exists (also `/v/<version>/releases/`) |
+
+So `npx shadcn add https://ui.example.com/r/v1.0.0/button.json` keeps
+installing exactly what shipped in 1.0.0, and each snapshot's install tab
+points at its own `/r/v<version>/` URLs.
+
+The header gets a version switcher (it keeps the current page when it
+exists in the target version, otherwise opens that version's home), and
+every version other than the newest release shows a banner linking back to
+the latest site. Both read `/versions.json` at runtime, so an older
+snapshot always knows about newer releases.
+
+**How snapshots are built.** The version is the trailing semver of the tag
+name (`v1.2.0`, `my-ui@1.2.0`); tags without one are ignored, and the
+newest stable version is "latest". For each tag the shell checks out the
+tag's commit in a temporary `git worktree`, installs its dependencies, runs
+`registryBuildCommand`, then builds that checkout's components, docs,
+previews and config with the **current** shell under the `/v/<version>`
+base path. Tags that predate your shell config are skipped; any other
+failure fails the build (narrow `tags` to exclude a tag that can't be
+built).
+
+**Caching.** A built snapshot is stored in `cacheDir`, keyed by version and
+tag commit, so a deploy only rebuilds latest plus new tags. Entries also
+record the shell version: upgrading `@sntlr/registry-shell` rebuilds every
+snapshot once so old versions pick up shell fixes (their content stays
+frozen). Keep `cacheDir` in a location your CI persists between builds.
+
+**CI notes.** Tags must be present in the clone: many CI checkouts are
+shallow and tagless (e.g. GitHub Actions' `actions/checkout` needs
+`fetch-depth: 0`; elsewhere run `git fetch --tags --unshallow` first). The
+build logs a hint when a shallow clone has no matching tag.
+
+**Releases page.** When `changelog` (default `CHANGELOG.md`, relative to
+the config; `""` turns it off) exists, `/releases` renders it, linked from
+the Documentation sidebar. The expected format is the one
+[changesets](https://github.com/changesets/changesets) writes: one
+`## <version>` section per release (newest first) with `### Major Changes`
+/ `### Minor Changes` / `### Patch Changes` lists. Any `## ` heading
+containing a semver works (`## v1.2.0`, `## [1.2.0] - 2026-09-29`);
+entries are rendered as plain Markdown (GFM), not MDX. Each section is
+tagged with its kinds of change, marks the newest release, and links to
+that version's docs when a snapshot of it is published (both read from
+`/versions.json` at runtime). Each snapshot renders the changelog as it
+was at its tag; tags without the file get no Releases page.
+
+**Changes tab.** Component pages get a "Changes" tab with a unified diff of
+the item's registry files between two versions, defaulting to the
+previous version → the one being viewed (on the latest site, the newest
+release → the working tree). Readers can pick any two versions. When
+nothing changed it says "Unchanged since v1.0.0"; when the item didn't
+exist in the older version, "Added in v1.1.0". The diff covers every file
+of the registry item plus its metadata (dependencies,
+`registryDependencies`, file targets, `cssVars`...), so a dependency bump
+shows up too.
+
+The history is computed at build time from each version's registry JSON
+(the files published under `/r/v<version>/`, plus the working tree's for
+latest) and written to `/changes/<name>.json` at the site root: every
+version's file hashes plus each distinct file content once, so one fetch
+lets the browser diff any pair of versions. Like `/versions.json`, it is
+regenerated on every deploy, so cached snapshots of older versions know
+about later releases.
+
+Without `versions`, the build output is exactly the single latest site:
+no Releases page, no Changes tab, no `/changes/`.
+
+**Oldest version.** `minVersion: "1.0.0"` leaves out tags below it.
+
+### Versions from another repository
+
+A docs site often lives in its own repository while the pages are written
+next to the code they document, and a sync script copies them into
+`content/docs` (see "Preparing content from another repository"). Its
+versions are then the **code's** releases, not the site's. Point
+`versions.source` at the code's repository:
+
+```ts
+// docs-shell.config.ts
+export default defineConfig({
+  branding: { /* ... */ },
+  versions: {
+    tags: "v*",                                         // the source's tags
+    minVersion: "1.0.0",                                // optional
+    source: {
+      repo: "https://github.com/org/app.git",           // or a local path: "../app"
+      sync: "node scripts/sync-docs.mjs --source {sourceDir} --clean",
+      // tokenEnv: "APP_REPO_TOKEN",                    // private repositories
+      // syncOutputs: ["content/docs", "public/docs-assets"],  // default: the docs folder
+      // ref: "main",                                   // default: the source's default branch
+    },
+    current: { label: "develop" },                      // the site root isn't a release
+  },
+})
+```
+
+For each of the source's tags, the build checks out **this site as
+committed** (config, theme, sync script; your installed `node_modules`
+are reused, nothing is installed) and the **source at the tag**, runs
+`sync` in the site checkout, and builds the result under `/v/<version>/`.
+`{sourceDir}` and `{siteDir}` in `sync` are the two checkouts; the command
+also gets `DOCS_SHELL_SOURCE_DIR`, `DOCS_SHELL_SITE_DIR`,
+`DOCS_SHELL_SOURCE_REF` (the tag), `DOCS_SHELL_SOURCE_COMMIT` and
+`DOCS_SHELL_VERSION`, e.g. to link to the source files at the right tag.
+Your own checkout is never modified.
+
+- **The site root** is built from the working tree as it is: the pages
+  your usual sync put there (typically from the source's main branch).
+  With `current.label`, the version switcher lists it under that name, it
+  shows a notice pointing to the latest release, and "Go to latest" links
+  go to the latest release's snapshot rather than to `/`.
+- **The Releases page** reads `changelog` from the **source**: each
+  snapshot shows it as it was at its tag, the root as it is on `ref`.
+- **Caching.** A snapshot is rebuilt when its tag moves, when the site's
+  committed files change (theme, config, sync script) or when the shell is
+  upgraded. What the sync writes (`syncOutputs`) is left out, so syncing
+  new pages into the site root doesn't rebuild every version. Snapshots
+  use the committed site: commit theme changes before building.
+- **The source repository.** A local path is used as it is. A URL is
+  cloned once into `cacheDir` (file contents are only downloaded for the
+  tags that are built) and fetched on each build, so new and moved tags
+  are picked up. For a private repository over HTTPS, put a read token in
+  an environment variable and name it in `tokenEnv`: it's sent to git as a
+  header, never written to disk or shown in a command line. Without one,
+  git never prompts; the build fails with a message saying so.
+- `/versions.json` records where each snapshot came from:
+  `source: { repo, ref, commit }` per version, and `current: { label }`.
+  Registry JSON and the Changes tab don't apply to versions from another
+  repository.
+
+## Releasing
+
+Publishing is tag-triggered via GitHub Actions. To cut a release:
+
+```bash
+npm version patch          # or minor / major — bumps package.json, commits, tags
+git push --follow-tags     # pushes the commit + the new tag together
+```
+
+The push of `v*` fires `.github/workflows/publish.yml`, which reruns lint +
+type-check + tests, verifies the tag matches `package.json`'s version, and
+publishes to npm with provenance. Requires an `NPM_TOKEN` secret in the
+repo (npm automation token with write access to the `@sntlr` scope).
+
+Every push to `main` and every PR also runs `.github/workflows/test.yml`
+(lint, type-check, build, unit tests) — that's the gate the release
+workflow leans on, so green there means a tag push will publish cleanly.
+
+## License
+
+MIT

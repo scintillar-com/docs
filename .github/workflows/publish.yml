@@ -59,13 +59,23 @@ jobs:
         #    `next` dist-tag instead of `latest`, so `pnpm add <pkg>` and
         #    consumers with caret ranges never surface an unstable version.
         #    Any version containing `-` is treated as a prerelease (semver).
+        # Both packages share one version (pnpm release bumps them together,
+        # and registry-shell pins docs-shell at it).
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
-          PKG=$(node -p "require('./packages/registry-shell/package.json').version")
-          if [ "$TAG" != "$PKG" ]; then
-            echo "::error::Tag v$TAG does not match package.json version $PKG"
+          for pkg in docs-shell registry-shell; do
+            PKG=$(node -p "require('./packages/$pkg/package.json').version")
+            if [ "$TAG" != "$PKG" ]; then
+              echo "::error::Tag v$TAG does not match packages/$pkg version $PKG"
+              exit 1
+            fi
+          done
+          PIN=$(node -p "require('./packages/registry-shell/package.json').dependencies['@sntlr/docs-shell']")
+          if [ "$TAG" != "$PIN" ]; then
+            echo "::error::registry-shell pins @sntlr/docs-shell $PIN, expected $TAG"
             exit 1
           fi
+          PKG="$TAG"
           if [[ "$TAG" == *-* ]]; then
             echo "dist=next" >> "$GITHUB_OUTPUT"
           else
@@ -73,7 +83,14 @@ jobs:
           fi
           echo "Publishing $PKG to dist-tag: $(if [[ $TAG == *-* ]]; then echo next; else echo latest; fi)"
 
-      - name: Publish to npm
+      # The engine first: registry-shell depends on that exact version.
+      - name: Publish @sntlr/docs-shell
+        # See the next step for why npx npm@latest and no token. The package
+        # needs its own trusted publisher on npmjs.com (repo + this workflow).
+        working-directory: packages/docs-shell
+        run: npx npm@latest publish --provenance --tag ${{ steps.version.outputs.dist }}
+
+      - name: Publish @sntlr/registry-shell
         # `npx npm@latest` bypasses the hosted runner's preinstalled
         # npm (Node 22 LTS ships npm 10.x, which doesn't support
         # Trusted Publishing / OIDC — added in npm 11.5). We also hit a
@@ -86,6 +103,7 @@ jobs:
         # (requires `id-token: write` above) and exchanges it with the
         # registry. The package must have a trusted publisher
         # configured on npmjs.com pointing at this repo + workflow.
-        # `prepack` rebuilds `dist/` before the tarball.
+        # Its `prepack` writes the `shell/*` re-export stubs (docs-shell's
+        # `prepack` rebuilds its `dist/`).
         working-directory: packages/registry-shell
         run: npx npm@latest publish --provenance --tag ${{ steps.version.outputs.dist }}
