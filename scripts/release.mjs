@@ -65,6 +65,8 @@ for (const f of pkgFiles) {
 }
 
 git("commit", "-m", next)
-git("tag", `v${next}`)
+// Annotated, not lightweight: `git push --follow-tags` only pushes annotated
+// tags, and the tag is what triggers publish.yml.
+git("tag", "-a", `v${next}`, "-m", `v${next}`)
 console.log(`release: ${current} -> ${next} (${pkgFiles.length} package${pkgFiles.length > 1 ? "s" : ""}), tagged v${next}`)
 console.log("release: push with `git push origin main --follow-tags`")
