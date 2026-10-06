@@ -1,5 +1,35 @@
 # @sntlr/registry-shell
 
+## Unreleased
+
+### Patch Changes
+
+- `registry-shell dev`: fix intermittent 500s ("Unexpected end of JSON
+  input") on the first requests to `/preview/<name>` and
+  `/preview-snapshot/<name>` of a fresh dev server, worst with several
+  requests at once (parallel Playwright workers). Next's dev server rewrites
+  `.next/prerender-manifest.json` non-atomically when it first resolves
+  `generateStaticParams` for a route, and concurrent requests read it
+  mid-write or interleave writes. The CLI now preloads a small hook into the
+  Next process that serializes reads and writes of the `.next/*-manifest.json`
+  files and writes them atomically (temp file + rename). Set
+  `REGISTRY_SHELL_ATOMIC_MANIFESTS=0` to turn it off. The shell's own search
+  index and mode stamp are also written atomically now.
+- `/preview-snapshot/<name>`: fix a hydration mismatch for previews that use
+  `React.useId` (Radix ids, SVG gradient ids). The snapshot page rendered the
+  registry's `next/dynamic` preview map from a Client Component, where the
+  lazy import suspends during SSR and shifts the ids. It now renders the
+  preview from a Server Component, like `/preview/<name>`.
+- `/preview/<name>`: fix a hydration mismatch when the visitor had left the
+  preview fullscreen or with its controls open. The saved state was read
+  from sessionStorage during the first render; it is now restored right
+  after hydration.
+- Fonts are self-hosted with `next/font/local` instead of `next/font/google`,
+  so `next build` no longer fetches Google Fonts and can't fail on a bad
+  response or without network. Same families, CSS variables (`--font-sans`,
+  `--font-mono`) and weights; the latin-subset woff2 files and their OFL
+  licences ship in the package (about 70 KB).
+
 ## 2.7.0
 
 ### Minor Changes

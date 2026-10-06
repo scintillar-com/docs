@@ -58,32 +58,36 @@ export function PreviewLayout({
   const hasControls = controls && controls.length > 0
   const isMobile = useIsMobile()
 
-  const [showControls, setShowControls] = useState(() => {
-    if (typeof window === "undefined") return false
-    return sessionStorage.getItem("preview-controls") === "true"
-  })
+  // Both start closed and are restored from sessionStorage after mount (see
+  // the effect below). Reading storage in the initializer rendered a
+  // different tree on the client than on the server (toolbar, controls
+  // panel), which broke hydration and shifted every `useId` in the preview.
+  const [showControls, setShowControls] = useState(false)
   // `fullscreen` is local UX state (controls toolbar icon + mobile
   // controls-toggle behavior). The actual fullscreen visual ; iframe
   // wrapper sized to cover the shell viewport ; is handled by the
   // parent shell via postMessage.
-  const [fullscreen, setFullscreen] = useState(() => {
-    if (typeof window === "undefined") return false
-    return sessionStorage.getItem("preview-fullscreen") === "true"
-  })
+  const [fullscreen, setFullscreen] = useState(false)
   const t = useTranslations()
 
   // Shared camera state between inline and fullscreen canvases
   const [camera, setCamera] = useState<CameraState>({ x: 0, y: 0, zoom: 1 })
   const [position, setPosition] = useState<CanvasPosition>({ x: 0, y: 0 })
 
-  // Mirror the restored-from-storage fullscreen state to the parent on
-  // mount. Without this, a page-load with `preview-fullscreen=true` left
-  // the iframe wrapper bounded to its inline-resize size.
+  // Restore the saved fullscreen / controls state once hydrated, and mirror
+  // a restored fullscreen to the parent. Without the postMessage, a
+  // page-load with `preview-fullscreen=true` left the iframe wrapper
+  // bounded to its inline-resize size. Runs only on mount; later toggles
+  // are handled in enter/exitFullscreen below.
   useEffect(() => {
-    if (fullscreen) postFullscreenToParent(true)
-    // Run only on mount; subsequent toggles are handled in
-    // enter/exitFullscreen below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (sessionStorage.getItem("preview-controls") === "true") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- restore from sessionStorage after hydration
+      setShowControls(true)
+    }
+    if (sessionStorage.getItem("preview-fullscreen") === "true") {
+      setFullscreen(true)
+      postFullscreenToParent(true)
+    }
   }, [])
 
   // In snapshot mode, render children directly — no canvas, no controls

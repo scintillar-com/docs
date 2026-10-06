@@ -21,7 +21,7 @@ import path from "node:path"
 import { createJiti } from "jiti"
 import type { LoadedConfig } from "./shared.js"
 import type { ResolvedShellConfig } from "../config-loader.js"
-import { writeFileFresh } from "./fs-safe.js"
+import { writeFileAtomicSync } from "./atomic-write.js"
 import { pageSearchRecords, type SearchRecord } from "../content/index.js"
 
 interface IndexAdapter {
@@ -102,7 +102,10 @@ export async function generateSearchIndex(
   const defaultLocale = resolved.defaultLocale || "en"
   const write = (file: string, records: SearchRecord[]) => {
     const outPath = path.join(outDir, file)
-    writeFileFresh(outPath, JSON.stringify(records))
+    // Atomic: a running dev server may be serving this file while a second
+    // `dev` regenerates it. The rename also replaces a pnpm-store hard link
+    // instead of writing through it.
+    writeFileAtomicSync(outPath, JSON.stringify(records))
     const kb = (fs.statSync(outPath).size / 1024).toFixed(0)
     console.log(`[docs-shell] Wrote search index (${records.length} records, ${kb} KB) → ${outPath}`)
   }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google"
+import { fontSans, fontMono } from "@shell/lib/fonts"
 import { ThemeProvider } from "@shell/components/theme-provider"
 import { ThemeOverridesScript } from "@shell/components/theme-overrides-script"
 import { getShellThemePanel } from "@shell/lib/theme-panel"
@@ -23,17 +23,6 @@ const shellLocales = getShellLocales()
 const shellDefaultLocale = getShellDefaultLocale() || "en"
 // Null unless the registry opts into the theme panel (see lib/theme-panel).
 const themePanel = getShellThemePanel()
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-sans",
-  subsets: ["latin"],
-})
-
-const spaceMono = JetBrains_Mono({
-  variable: "--font-mono",
-  weight: ["400", "700"],
-  subsets: ["latin"],
-})
 
 const description = branding.description || `${branding.siteName} component registry.`
 
@@ -81,7 +70,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${spaceGrotesk.variable} ${spaceMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontMono.variable} antialiased`}
       >
         {themePanel && <ThemeOverridesScript controls={themePanel.controls} />}
         <ThemeProvider>

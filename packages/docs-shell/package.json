@@ -64,6 +64,7 @@
     "src/next-app/app",
     "src/next-app/components",
     "src/next-app/fallback",
+    "src/next-app/fonts",
     "src/next-app/hooks",
     "src/next-app/lib",
     "src/next-app/public/favicon.ico",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google"
+import { fontSans, fontMono } from "@shell/lib/fonts"
 import { ThemeProvider } from "@shell/components/theme-provider"
 import { ThemeOverridesScript } from "@shell/components/theme-overrides-script"
 import { ThemeOverridesSync } from "@shell/components/theme-overrides-sync"
@@ -35,17 +35,6 @@ import "./preview.css"
  * shell-chrome rules cannot leak in.
  */
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-sans",
-  subsets: ["latin"],
-})
-
-const spaceMono = JetBrains_Mono({
-  variable: "--font-mono",
-  weight: ["400", "700"],
-  subsets: ["latin"],
-})
-
 export const metadata: Metadata = {
   // Iframes don't surface this title to the user, but keep it for
   // discoverability when the route is opened directly (Playwright,
@@ -65,7 +54,7 @@ export default function PreviewRootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${spaceGrotesk.variable} ${spaceMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontMono.variable} antialiased`}
       >
         {themePanel && <ThemeOverridesScript controls={themePanel.controls} />}
         <ThemeProvider>
