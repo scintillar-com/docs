@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url"
  * Playwright suite for the theme panel. Boots the shell against
  * `fixtures/dev-registry/` (repo root) (which sets `themePanel: {}`) and drives the
  * header popover end to end: mode, primary color, tint, Copy CSS,
- * persistence and sync into the preview iframe.
+ * persistence and sync into the preview iframe. Also runs the preview
+ * hydration check, which needs the fixture's `useId` preview.
  *
  *   pnpm test:theme-panel
  *
@@ -19,7 +20,7 @@ const port = Number(process.env.THEME_PANEL_PORT ?? 3100)
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "theme-panel.spec.ts",
+  testMatch: ["theme-panel.spec.ts", "preview-hydration.spec.ts"],
   fullyParallel: false,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,

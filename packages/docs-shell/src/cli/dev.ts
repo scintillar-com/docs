@@ -12,8 +12,10 @@
  * in a production build. Note: changes to the user's `public/` during a
  * dev session require a restart to refresh the overlay.
  */
+import fs from "node:fs"
 import path from "node:path"
 import { spawn } from "node:child_process"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import {
   NEXT_BIN,
   buildEnvVars,
@@ -71,7 +73,15 @@ export async function run(args: string[]): Promise<void> {
   const turbopackArgs = process.env.UI_SHELL_TURBOPACK ? ["--turbopack"] : []
   const child = spawn(
     process.execPath,
-    [NEXT_BIN, "dev", shellNextApp, ...turbopackArgs, ...portArgs, ...args],
+    [
+      ...devPreloadArgs(),
+      NEXT_BIN,
+      "dev",
+      shellNextApp,
+      ...turbopackArgs,
+      ...portArgs,
+      ...args,
+    ],
     { stdio: "inherit", env },
   )
 
@@ -88,4 +98,19 @@ export async function run(args: string[]): Promise<void> {
     restorePublic()
     process.exit(code ?? 0)
   })
+}
+
+/**
+ * `--import <next-dev-preload>` for the Next process. Passed as a node exec
+ * arg rather than through NODE_OPTIONS: `next dev` forks its server worker
+ * with the parent's execArgv, so the preload reaches the process that writes
+ * `.next/prerender-manifest.json`, and it can't collide with a `--require`
+ * / `--import` the user already has in NODE_OPTIONS (Next collapses
+ * duplicate NODE_OPTIONS keys). Skipped when the compiled preload isn't
+ * there (running the CLI from source via tsx).
+ */
+function devPreloadArgs(): string[] {
+  const preload = path.join(path.dirname(fileURLToPath(import.meta.url)), "next-dev-preload.js")
+  if (!fs.existsSync(preload)) return []
+  return ["--import", pathToFileURL(preload).href]
 }

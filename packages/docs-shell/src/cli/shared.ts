@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url"
 import { createJiti } from "jiti"
 import type { ShellConfig } from "../define-config.js"
 import { writeFileFresh } from "./fs-safe.js"
+import { writeFileAtomicSync } from "./atomic-write.js"
 
 /**
  * Absolute path to the Next.js CLI binary shipped with the shell package.
@@ -172,7 +173,7 @@ export function clearStaleNextCacheIfModeChanged(loaded: LoadedConfig | null): v
     }
   }
 
-  writeFileFresh(stampPath, currentMode + "\n")
+  writeFileAtomicSync(stampPath, currentMode + "\n", "utf-8")
 }
 
 /** Optional shell modules (see `ShellConfig.modules`). */
