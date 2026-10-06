@@ -80,9 +80,11 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
 
   return (
     <header className="h-14 border-b border-border sticky top-0 z-30 bg-background">
-      <div className="relative flex items-center justify-between h-full px-4 md:px-6">
-        {/* Left: hamburger + breadcrumb (fixed-width container so absolute-centered tabs don't shift) */}
-        <div className="flex items-center gap-2 md:w-80 md:shrink-0 min-w-0">
+      {/* From md up, a 1fr | auto | 1fr grid keeps the tabs centred whatever the
+          breadcrumb width, and the columns can't overlap when space runs out. */}
+      <div className="flex items-center justify-between h-full px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-6">
+        {/* Left: hamburger + breadcrumb */}
+        <div className="flex items-center gap-2 min-w-0">
           {/* Hamburger — always takes space on mobile for consistent brand position */}
           <div
             className={`md:overflow-hidden md:transition-all md:duration-300 md:ease-in-out motion-reduce:transition-none ${
@@ -123,11 +125,11 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
           </Breadcrumb>
         </div>
 
-        {/* Center: section tabs — absolutely centered, independent of breadcrumb width */}
+        {/* Center: section tabs */}
         {navData && (
           <nav
             aria-label="Sections"
-            className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 h-full"
+            className="hidden md:flex items-center gap-1 h-full"
           >
             {firstRootSlug && (
               <HeaderTab href={`/docs/${firstRootSlug}`} active={activeSection === "docs"}>
@@ -156,7 +158,7 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
           </nav>
         )}
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 md:col-start-3 md:justify-self-end">
           {/* GitHub button — rendered only when the registry config provides
               a `github` object. Label defaults to "Github" but is overridable
               (e.g. "Sponsor"). Star count fetches server-side with hourly
@@ -179,7 +181,8 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
                 }
               >
                 <Github className="size-3.5" />
-                <span>{branding.github.label ?? "Github"}</span>
+                {/* Icon only below lg, where the tabs need the room. */}
+                <span className="hidden lg:inline">{branding.github.label ?? "Github"}</span>
                 {typeof githubStars === "number" && (
                   <Badge
                     variant="secondary"
