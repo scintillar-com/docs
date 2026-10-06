@@ -182,7 +182,7 @@ function SearchDialog() {
       <Button
         variant="outline"
         size="sm"
-        className="hidden md:inline-flex gap-2 text-muted-foreground font-normal w-56 justify-start"
+        className="hidden lg:inline-flex gap-2 text-muted-foreground font-normal w-56 justify-start"
         onClick={() => setOpen(true)}
       >
         <Search className="size-4" />
@@ -191,11 +191,11 @@ function SearchDialog() {
           <span className="text-xs">&#8984;</span>K
         </kbd>
       </Button>
-      {/* Mobile: icon only */}
+      {/* Mobile and tablet: icon only, so the header tabs fit */}
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden"
+        className="lg:hidden"
         onClick={() => setOpen(true)}
         aria-label="Search"
       >
