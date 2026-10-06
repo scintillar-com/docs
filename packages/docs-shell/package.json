@@ -1,6 +1,6 @@
 {
   "name": "@sntlr/docs-shell",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "description": "Static documentation sites with versioned docs, i18n, search and a theme panel, from a folder of MDX. Optional component-registry module (see @sntlr/registry-shell).",
   "keywords": [
     "docs",

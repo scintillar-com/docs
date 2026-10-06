@@ -8,6 +8,9 @@
  *   pnpm release patch|minor|major      # 2.6.1 -> 2.6.2 / 2.7.0 / 3.0.0
  *   pnpm release 2.7.0-rc.1             # explicit version
  *   git push origin main --follow-tags  # the v* tag triggers publish.yml
+ *
+ *   pnpm release patch --no-tag         # on a branch: bump and commit only;
+ *                                       # tag main after the PR merges
  */
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
@@ -21,8 +24,10 @@ const fail = (msg) => {
   process.exit(1)
 }
 
-const arg = process.argv[2]
-if (!arg) fail("usage: pnpm release <patch|minor|major|x.y.z[-pre]>")
+const args = process.argv.slice(2)
+const noTag = args.includes("--no-tag")
+const arg = args.find((a) => !a.startsWith("--"))
+if (!arg) fail("usage: pnpm release <patch|minor|major|x.y.z[-pre]> [--no-tag]")
 
 if (git("status", "--porcelain")) fail("working tree is not clean; commit or stash first")
 
@@ -72,9 +77,23 @@ for (const f of pkgFiles) {
   git("add", path.relative(root, f))
 }
 
+// The internal pins just changed, so the lockfile's specifiers must too:
+// CI installs with --frozen-lockfile, which rejects a stale lockfile.
+execFileSync("pnpm", ["install", "--lockfile-only"], { cwd: root, stdio: "inherit", shell: process.platform === "win32" })
+git("add", "pnpm-lock.yaml")
+
 git("commit", "-m", next)
-// Annotated, not lightweight: `git push --follow-tags` only pushes annotated
-// tags, and the tag is what triggers publish.yml.
-git("tag", "-a", `v${next}`, "-m", `v${next}`)
-console.log(`release: ${current} -> ${next} (${pkgFiles.length} package${pkgFiles.length > 1 ? "s" : ""}), tagged v${next}`)
-console.log("release: push with `git push origin main --follow-tags`")
+const summary = `release: ${current} -> ${next} (${pkgFiles.length} package${pkgFiles.length > 1 ? "s" : ""})`
+
+if (noTag) {
+  // Release through a pull request: merge this commit, then tag the merge
+  // commit on main to publish.
+  console.log(`${summary}, not tagged`)
+  console.log(`release: open a PR; after merging, tag main with \`git tag -a v${next} -m v${next}\` and \`git push origin v${next}\``)
+} else {
+  // Annotated, not lightweight: `git push --follow-tags` only pushes annotated
+  // tags, and the tag is what triggers publish.yml.
+  git("tag", "-a", `v${next}`, "-m", `v${next}`)
+  console.log(`${summary}, tagged v${next}`)
+  console.log("release: push with `git push origin main --follow-tags`")
+}
