@@ -14,14 +14,14 @@
   ],
   "license": "MIT",
   "author": "Scintillar",
-  "homepage": "https://github.com/scintillar-com/registry-shell/tree/main/packages/registry-shell#readme",
+  "homepage": "https://github.com/scintillar-com/docs/tree/main/packages/registry-shell#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/scintillar-com/registry-shell.git",
+    "url": "git+https://github.com/scintillar-com/docs.git",
     "directory": "packages/registry-shell"
   },
   "bugs": {
-    "url": "https://github.com/scintillar-com/registry-shell/issues"
+    "url": "https://github.com/scintillar-com/docs/issues"
   },
   "publishConfig": {
     "access": "public"

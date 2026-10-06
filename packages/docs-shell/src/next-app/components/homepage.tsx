@@ -205,12 +205,12 @@ function NoRegistryPlaceholder() {
       <p className="mt-8 text-xs text-muted-foreground">
         Setup guide:{" "}
         <a
-          href="https://github.com/scintillar-com/registry-shell"
+          href="https://github.com/scintillar-com/docs"
           className="underline underline-offset-4 hover:text-foreground"
           target="_blank"
           rel="noopener noreferrer"
         >
-          scintillar-com/registry-shell
+          scintillar-com/docs
         </a>
       </p>
     </main>
