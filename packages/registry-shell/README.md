@@ -15,7 +15,7 @@ pnpm shell:build            # static export in ./out
 
 ## Documentation
 
-Configuration, previews and controls, versioned docs, the theme panel, custom adapters and deployment are documented in the [@sntlr/docs-shell README](https://github.com/scintillar-com/registry-shell/tree/main/packages/docs-shell#readme). Every option there applies here.
+Configuration, previews and controls, versioned docs, the theme panel, custom adapters and deployment are documented in the [@sntlr/docs-shell README](https://github.com/scintillar-com/docs/tree/main/packages/docs-shell#readme). Every option there applies here.
 
 For a documentation site without components, use `@sntlr/docs-shell` directly (`docs-shell` command, `docs-shell.config.ts`).
 
