@@ -6,8 +6,8 @@ import { useMobileSidebar } from "@shell/components/sidebar-provider"
 const STORAGE_KEY = "preview-height"
 const FULLSCREEN_STORAGE_KEY = "preview-fullscreen"
 const FULLSCREEN_MESSAGE = "@sntlr/preview:fullscreen"
+// Matches the desktop height in DEFAULT_HEIGHT_CLASS below.
 const DEFAULT_HEIGHT_DESKTOP = 384
-const DEFAULT_HEIGHT_MOBILE = 600
 const MIN_HEIGHT = 200
 const MAX_HEIGHT = 1000
 
@@ -15,32 +15,16 @@ function clampHeight(n: number): number {
   return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, n))
 }
 
-/**
- * Height used when the visitor hasn't resized a preview in this tab: the
- * component's configured `previewHeight` when set (same on every viewport),
- * otherwise the shell's desktop / mobile default.
- */
-function getDefaultHeight(configured?: number): number {
-  if (configured !== undefined) return clampHeight(configured)
-  if (typeof window === "undefined") return DEFAULT_HEIGHT_DESKTOP
-  return window.matchMedia("(max-width: 767px)").matches
-    ? DEFAULT_HEIGHT_MOBILE
-    : DEFAULT_HEIGHT_DESKTOP
-}
+// Without a configured `previewHeight`, the default height comes from CSS
+// (same breakpoint as `md`), so the server and the first client render
+// agree on every viewport. Spelled out in full so Tailwind picks it up.
+const DEFAULT_HEIGHT_CLASS = "h-[384px] max-md:h-[600px]"
 
-function getStoredHeight(configured?: number): number {
-  if (typeof window === "undefined") return getDefaultHeight(configured)
+function getStoredHeight(): number | null {
   const stored = sessionStorage.getItem(STORAGE_KEY)
-  if (stored) {
-    const n = Number(stored)
-    if (!isNaN(n)) return clampHeight(n)
-  }
-  return getDefaultHeight(configured)
-}
-
-function getStoredFullscreen(): boolean {
-  if (typeof window === "undefined") return false
-  return sessionStorage.getItem(FULLSCREEN_STORAGE_KEY) === "true"
+  if (!stored) return null
+  const n = Number(stored)
+  return isNaN(n) ? null : clampHeight(n)
 }
 
 export function ResizablePreview({
@@ -54,7 +38,11 @@ export function ResizablePreview({
    */
   defaultHeight?: number
 }) {
-  const [height, setHeight] = useState(() => getStoredHeight(defaultHeight))
+  // `null` until the visitor resizes or a height saved in this tab is
+  // restored: the preview then uses the configured `previewHeight`, or the
+  // CSS default. Saved state is only read after mount, so it can't make the
+  // first client render differ from the server's.
+  const [height, setHeight] = useState<number | null>(null)
   // Tracked in state (not just a ref) so we can flip a CSS class that
   // disables iframe pointer events while dragging — without it, the
   // cursor crossing into a child iframe interrupts the document-level
@@ -67,7 +55,8 @@ export function ResizablePreview({
   // (minus the 3.5rem header) so the iframe element itself appears
   // fullscreen rather than the iframe's *contents* trying to fullscreen
   // within their bounded box.
-  const [isFullscreen, setIsFullscreen] = useState(getStoredFullscreen)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const frameRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   // Set once the visitor drags the handle. Only a height they chose is
   // persisted, so a component's configured `previewHeight` isn't shadowed
@@ -78,9 +67,24 @@ export function ResizablePreview({
   const { setCollapsed } = useMobileSidebar()
 
   useEffect(() => {
-    if (!userResized.current) return
+    /* eslint-disable react-hooks/set-state-in-effect -- restores tab state after hydration */
+    const stored = getStoredHeight()
+    if (stored !== null) setHeight(stored)
+    if (sessionStorage.getItem(FULLSCREEN_STORAGE_KEY) === "true") setIsFullscreen(true)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [])
+
+  useEffect(() => {
+    if (!userResized.current || height === null) return
     sessionStorage.setItem(STORAGE_KEY, String(height))
   }, [height])
+
+  // The height a drag starts from: the current state, or the rendered
+  // height while the preview is still on its default.
+  const currentHeight = useCallback(
+    () => height ?? frameRef.current?.getBoundingClientRect().height ?? DEFAULT_HEIGHT_DESKTOP,
+    [height],
+  )
 
   // Listen for fullscreen toggle messages from the inline preview iframe.
   // Only accept same-origin messages (paranoid — the iframe is
@@ -134,7 +138,7 @@ export function ResizablePreview({
     dragging.current = true
     setIsDragging(true)
     startY.current = e.clientY
-    startH.current = height
+    startH.current = currentHeight()
     document.body.style.cursor = "row-resize"
     document.body.style.userSelect = "none"
 
@@ -156,14 +160,14 @@ export function ResizablePreview({
 
     document.addEventListener("mousemove", onMouseMove)
     document.addEventListener("mouseup", onMouseUp)
-  }, [height])
+  }, [currentHeight])
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length !== 1) return
     dragging.current = true
     setIsDragging(true)
     startY.current = e.touches[0].clientY
-    startH.current = height
+    startH.current = currentHeight()
 
     function onTouchMove(ev: TouchEvent) {
       if (!dragging.current || ev.touches.length !== 1) return
@@ -182,7 +186,9 @@ export function ResizablePreview({
 
     document.addEventListener("touchmove", onTouchMove, { passive: false })
     document.addEventListener("touchend", onTouchEnd)
-  }, [height])
+  }, [currentHeight])
+
+  const explicitHeight = height ?? (defaultHeight !== undefined ? clampHeight(defaultHeight) : null)
 
   return (
     <div data-resize-dragging={isDragging || undefined}>
@@ -191,12 +197,16 @@ export function ResizablePreview({
           internal layout (toolbar + mobile props panel at bottom) keeps
           rendering normally — it just has the whole screen now. */}
       <div
+        ref={frameRef}
+        data-testid="preview-frame"
         className={
           isFullscreen
             ? "fixed left-0 right-0 top-14 bottom-0 z-40"
-            : "relative"
+            : explicitHeight === null
+              ? `relative ${DEFAULT_HEIGHT_CLASS}`
+              : "relative"
         }
-        style={isFullscreen ? undefined : { height }}
+        style={isFullscreen || explicitHeight === null ? undefined : { height: explicitHeight }}
       >
         {children}
         {/* Transparent overlay while dragging — sits on top of any iframe
