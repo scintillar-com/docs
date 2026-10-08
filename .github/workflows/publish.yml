@@ -49,6 +49,13 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      # Build before publishing, not only in `prepack`: npm checks `bin`
+      # paths before `prepack` runs, and npm 12 removes a `bin` whose file
+      # doesn't exist yet from the published package (docs-shell's
+      # `dist/cli/index.js`), shipping it without its CLI.
+      - name: Build
+        run: pnpm build
+
       - name: Verify tag matches package version and resolve dist-tag
         id: version
         # Two checks in one step:
@@ -85,19 +92,23 @@ jobs:
 
       # The engine first: registry-shell depends on that exact version.
       - name: Publish @sntlr/docs-shell
-        # See the next step for why npx npm@latest and no token. The package
+        # See the next step for why npx npm@11 and no token. The package
         # needs its own trusted publisher on npmjs.com (repo + this workflow).
+        # The repo is `docs` since the rename from `registry-shell`: a
+        # trusted publisher still naming the old repo fails with ENEEDAUTH.
         working-directory: packages/docs-shell
-        run: npx npm@latest publish --provenance --tag ${{ steps.version.outputs.dist }}
+        run: npx npm@11 publish --provenance --tag ${{ steps.version.outputs.dist }}
 
       - name: Publish @sntlr/registry-shell
-        # `npx npm@latest` bypasses the hosted runner's preinstalled
+        # `npx npm@11` bypasses the hosted runner's preinstalled
         # npm (Node 22 LTS ships npm 10.x, which doesn't support
         # Trusted Publishing / OIDC — added in npm 11.5). We also hit a
         # broken preinstalled npm 10.x that `npm i -g npm@latest` can't
         # recover from ("Cannot find module 'promise-retry'"), so
         # fetching a fresh npm via npx is both the simplest upgrade
-        # path and a workaround for the toolcache issue.
+        # path and a workaround for the toolcache issue. Pinned to a
+        # major rather than `latest`, so a new npm release can't change
+        # what gets published (npm 12 dropped docs-shell's bin).
         #
         # No `NODE_AUTH_TOKEN`: npm fetches the GitHub OIDC token
         # (requires `id-token: write` above) and exchanges it with the
@@ -106,4 +117,4 @@ jobs:
         # Its `prepack` writes the `shell/*` re-export stubs (docs-shell's
         # `prepack` rebuilds its `dist/`).
         working-directory: packages/registry-shell
-        run: npx npm@latest publish --provenance --tag ${{ steps.version.outputs.dist }}
+        run: npx npm@11 publish --provenance --tag ${{ steps.version.outputs.dist }}
