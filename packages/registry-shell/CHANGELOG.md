@@ -24,6 +24,12 @@
   preview fullscreen or with its controls open. The saved state was read
   from sessionStorage during the first render; it is now restored right
   after hydration.
+- `/components/<name>`: fix a hydration mismatch on the inline preview's
+  height on phones, and for visitors who had resized or fullscreened a
+  preview. The height came from `matchMedia` and sessionStorage during the
+  first render. The default height (384px, 600px on phones) is now set in
+  CSS, and a saved height or fullscreen is restored right after hydration.
+- Header: the section tabs no longer overlap the actions at tablet widths.
 - Fonts are self-hosted with `next/font/local` instead of `next/font/google`,
   so `next build` no longer fetches Google Fonts and can't fail on a bad
   response or without network. Same families, CSS variables (`--font-sans`,
