@@ -1,6 +1,6 @@
 # @sntlr/registry-shell
 
-## Unreleased
+## 2.8.2
 
 ### Patch Changes
 
@@ -35,6 +35,59 @@
   response or without network. Same families, CSS variables (`--font-sans`,
   `--font-mono`) and weights; the latin-subset woff2 files and their OFL
   licences ship in the package (about 70 KB).
+
+## 2.8.1
+
+### Patch Changes
+
+- Same features as 2.8.0, which never reached npm: its release commit left
+  `pnpm-lock.yaml` with the old internal pin, so the publish workflow's
+  `--frozen-lockfile` install failed. `pnpm release` now updates the lockfile
+  with the bumped pin, and gains `--no-tag` for releasing through a pull
+  request.
+
+## 2.8.0
+
+Not published to npm (see 2.8.1).
+
+### Minor Changes
+
+- The shell is split into two packages that share one version.
+  `@sntlr/docs-shell` is the engine, with its own `docs-shell` bin and
+  `docs-shell.config.*`. `@sntlr/registry-shell` is a preset that turns on
+  the component registry. Its bin, `registry-shell.config.ts` and
+  `@sntlr/registry-shell/shell/*` imports work as before.
+- Docs-only sites: the docs source is separate from the registry adapter
+  (custom adapters keep working through a shim), sites without a registry
+  get a docs homepage, and registry routes are only compiled when the
+  registry is on.
+- Nested docs: folders at any depth, with `_index` or `index` pages at the
+  folder's URL. Top-level folders become sections, with a header tab, a
+  sidebar block and a homepage card, and can be configured with
+  `sections: [{ dir, label, icon }]`. Flat URLs are unchanged.
+- The sidebar is recursive, remembers which folders are open, and can be
+  resized from 180 to 520px (at most 40% of the window).
+- Translations as `<name>.<locale>.mdx` next to the page, and locales
+  beyond English and French.
+- Search: one result per page intro and per H2 to H4 heading, linking to
+  the heading. One index per locale, a ranked dialog with a filter per
+  section, and links to a `#section` that scroll to it.
+- New `@sntlr/docs-shell/content` export with helpers for sync scripts:
+  `slugify`, `escapeMdx`, `rewriteLinks`, `docsRouteFor`, frontmatter
+  helpers, `copyAssets` and `pageSearchRecords`.
+- Versions built from another repository's tags with `versions.source`
+  (`repo`, `sync`, `syncOutputs`, `tokenEnv`, `ref`). Each tag's build is
+  cached by source commit, site files and shell version. Also
+  `versions.minVersion`, and `versions.current.label` to label the root
+  build (for example "develop") with a banner and a switcher entry.
+
+### Patch Changes
+
+- Site titles come from `branding` instead of a hard-coded "UI Registry".
+- The site's `public/` folder is overlaid onto the shell's safely, and
+  restored after the build or dev server stops, even after a crash.
+- `dev` builds the search index.
+- Headings with inline code get anchors.
 
 ## 2.7.0
 
