@@ -85,11 +85,20 @@ function FilterChip({
   )
 }
 
-export function SearchTrigger() {
-  return <SearchDialog />
+/**
+ * Where a search trigger sits:
+ * - `header` (default): a search bar from `lg` up, an icon below. Owns the
+ *   ⌘K / Ctrl+K shortcut.
+ * - `menu`: a full-width button, for the mobile menu. No shortcut, so a page
+ *   with both triggers opens one dialog on ⌘K.
+ */
+export type SearchTriggerVariant = "header" | "menu"
+
+export function SearchTrigger({ variant = "header" }: { variant?: SearchTriggerVariant } = {}) {
+  return <SearchDialog variant={variant} />
 }
 
-function SearchDialog() {
+function SearchDialog({ variant }: { variant: SearchTriggerVariant }) {
   const router = useRouter()
   const t = useTranslations()
   const { locale, defaultLocale } = useLocale()
@@ -114,6 +123,7 @@ function SearchDialog() {
   const loading = open && items?.locale !== locale
 
   useEffect(() => {
+    if (variant !== "header") return
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
@@ -122,7 +132,7 @@ function SearchDialog() {
     }
     document.addEventListener("keydown", down)
     return () => document.removeEventListener("keydown", down)
-  }, [])
+  }, [variant])
 
   const onOpenChange = useCallback((next: boolean) => {
     setOpen(next)
@@ -178,29 +188,42 @@ function SearchDialog() {
 
   return (
     <>
-      {/* Desktop: full search bar */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="hidden lg:inline-flex gap-2 text-muted-foreground font-normal w-56 justify-start"
-        onClick={() => setOpen(true)}
-      >
-        <Search className="size-4" />
-        <span>{t("header.search")}</span>
-        <kbd className="ml-auto pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
-          <span className="text-xs">&#8984;</span>K
-        </kbd>
-      </Button>
-      {/* Mobile and tablet: icon only, so the header tabs fit */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden"
-        onClick={() => setOpen(true)}
-        aria-label="Search"
-      >
-        <Search className="size-4" />
-      </Button>
+      {variant === "menu" ? (
+        <Button
+          variant="outline"
+          className="h-11 w-full justify-start gap-2 text-muted-foreground font-normal"
+          onClick={() => setOpen(true)}
+        >
+          <Search className="size-4" />
+          <span>{t("header.search")}</span>
+        </Button>
+      ) : (
+        <>
+          {/* Desktop: full search bar */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden lg:inline-flex gap-2 text-muted-foreground font-normal w-56 justify-start"
+            onClick={() => setOpen(true)}
+          >
+            <Search className="size-4" />
+            <span>{t("header.search")}</span>
+            <kbd className="ml-auto pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+              <span className="text-xs">&#8984;</span>K
+            </kbd>
+          </Button>
+          {/* Mobile and tablet: icon only, so the header tabs fit */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setOpen(true)}
+            aria-label="Search"
+          >
+            <Search className="size-4" />
+          </Button>
+        </>
+      )}
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
           className="overflow-hidden p-0 sm:max-w-xl max-md:max-w-full! max-md:h-dvh max-md:rounded-none max-md:border-0 max-md:top-0 max-md:translate-y-0"

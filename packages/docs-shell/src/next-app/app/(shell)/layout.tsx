@@ -5,7 +5,7 @@ import { ThemeOverridesScript } from "@shell/components/theme-overrides-script"
 import { getShellThemePanel } from "@shell/lib/theme-panel"
 import { I18nProvider } from "@shell/lib/i18n"
 import { SidebarProvider } from "@shell/components/sidebar-provider"
-import { Header } from "@shell/components/header"
+import SiteHeader from "@user/header"
 import { VersionBanner } from "@shell/components/version-banner"
 import { A11yProvider } from "@shell/components/a11y-provider"
 import { NavigationProgress } from "@shell/components/navigation-progress"
@@ -83,7 +83,8 @@ export default async function RootLayout({
               <SidebarProvider>
                 <NavigationProgress />
                 <A11yProvider />
-                <Header githubStars={githubStars} />
+                {/* The site's own header when it sets `components.header`. */}
+                <SiteHeader githubStars={githubStars} />
                 <VersionBanner />
                 {/* Mobile-only sidebar mounted here so the hamburger menu works
                     on every page (including the homepage). Per-section layouts

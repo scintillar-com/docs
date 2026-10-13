@@ -44,6 +44,11 @@ function resolveUserModule(relativePath: string, fallback: string): string {
 }
 
 const USER_PREVIEWS = resolveUserModule("components/previews", "fallback/previews.ts")
+// The site's header (`components.header`), which the CLI resolves to an
+// absolute path; the shell's own header otherwise.
+const USER_HEADER = process.env.USER_HEADER_PATH
+  ? toPosix(process.env.USER_HEADER_PATH)
+  : toPosix(path.join(HERE, "fallback/header.tsx"))
 
 // Set only for frozen snapshots of the versioned build (`/v/<version>`).
 // Absent for regular builds, so their output is unchanged.
@@ -119,6 +124,7 @@ const nextConfig: NextConfig = {
       : toPosix(findCommonRoot(HERE, USER_ROOT ?? process.cwd())),
     resolveAlias: {
       "@user/previews": USER_PREVIEWS,
+      "@user/header": USER_HEADER,
       [REGISTRY_SHELL_SUBPATH]: toPosix(HERE),
       [DOCS_SHELL_SUBPATH]: toPosix(HERE),
     },
@@ -129,6 +135,7 @@ const nextConfig: NextConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias ?? {}),
       "@user/previews": USER_PREVIEWS,
+      "@user/header": USER_HEADER,
       // Shell's internal alias — its own files.
       "@shell": toPosix(HERE),
       [REGISTRY_SHELL_SUBPATH]: toPosix(HERE),

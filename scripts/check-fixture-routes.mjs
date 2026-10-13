@@ -21,6 +21,7 @@ const engineCli = path.join(root, "packages/docs-shell/dist/cli/index.js")
 const FIXTURE_CLI = {
   "docs-basic": engineCli,
   "docs-nested": engineCli,
+  "docs-custom-header": engineCli,
   "dev-registry": path.join(root, "packages/registry-shell/bin/registry-shell.js"),
 }
 const FIXTURES = Object.keys(FIXTURE_CLI)

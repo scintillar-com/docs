@@ -1,5 +1,31 @@
 # @sntlr/registry-shell
 
+## Unreleased
+
+### Minor Changes
+
+- Custom header: `components.header` points at a site file (a client
+  component, default export) that replaces the shell's header on every page.
+  Build it from the header kit,
+  `@sntlr/docs-shell/shell/components/header-kit` (or the preset's
+  `shell/components/header-kit`). It is the one import meant to stay stable
+  across minor releases, and holds `useHeaderSections`, `useNavData`,
+  `useActiveSection`, `useMobileSidebar`, `SearchTrigger`, `LocaleToggle`,
+  `ThemeToggle`, `VersionSwitcher`, `Button`, `Link`, the shell's `Header`,
+  `branding`, `withBasePath`, `useLocale`, `useTranslations` and `cn`.
+  Without the option, nothing changes.
+- `--shell-header-height` (default `3.5rem`): the header, sidebar, floating
+  menus, table of contents and heading anchors offset by this variable
+  instead of fixed values. A site with a taller header sets it in its
+  `globalCss`.
+- `mobileMenu: { tools: true }`: search, language and theme at the top of
+  the mobile menu, for headers too narrow to hold them on a phone. The
+  shell's header then drops them below `md`.
+- `SearchTrigger` takes a `variant`: `"header"` (default, unchanged, owns
+  ⌘K / Ctrl+K) or `"menu"` (a full-width button without the shortcut).
+- `ThemeToggle` takes a `className`, also applied to the theme panel's
+  button.
+
 ## 2.8.2
 
 ### Patch Changes

@@ -1,0 +1,4 @@
+/
+/404/
+/docs/guides/long-page/
+/docs/welcome/

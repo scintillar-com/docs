@@ -50,6 +50,10 @@
 }
 
 :root {
+  /* Height of the sticky header. Everything that sits below it (sidebar,
+     floating cards, table of contents, heading anchors) offsets by it, so a
+     site with a taller header of its own sets it in its `globalCss`. */
+  --shell-header-height: 3.5rem;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -127,6 +131,11 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+  }
+  /* A link to a section of a docs page lands with its heading clear of the
+     sticky header. */
+  [data-docs-content] :is(h1, h2, h3, h4, h5, h6) {
+    scroll-margin-top: calc(var(--shell-header-height) + 1.5rem);
   }
   /* Prevent Radix scroll-lock from causing layout shift */
   body[data-scroll-locked] {

@@ -15,6 +15,10 @@ import { Backdrop } from "@shell/components/shell-ui/backdrop"
 import { DragHandle } from "@shell/components/shell-ui/drag-handle"
 import { RELEASES_ENABLED } from "@shell/lib/versions"
 import { groupComponentsByCategory } from "@shell/lib/sidebar-groups"
+import { MOBILE_MENU_TOOLS } from "@shell/lib/mobile-menu"
+import { SearchTrigger } from "@shell/components/search"
+import { LocaleToggle } from "@shell/components/locale-toggle"
+import { ThemeToggle } from "@shell/components/theme-toggle"
 
 import type { ActiveSection } from "@shell/hooks/use-active-section"
 
@@ -180,11 +184,21 @@ export function Sidebar({
       {showMobile && (
         <aside
           className={`
-            md:hidden fixed top-18 left-4 z-50 w-64 rounded-lg border border-border bg-background shadow-xl overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none
+            md:hidden fixed top-[calc(var(--shell-header-height)+1rem)] left-4 z-50 w-64 rounded-lg border border-border bg-background shadow-xl overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none
             ${open ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}
           `}
-          style={{ maxHeight: "calc(100vh - 6rem)" }}
+          style={{ maxHeight: "calc(100vh - var(--shell-header-height) - 2.5rem)" }}
         >
+          {/* `mobileMenu.tools`: for headers too narrow to hold these. */}
+          {MOBILE_MENU_TOOLS && (
+            <div data-testid="mobile-menu-tools" className="space-y-2 border-b border-border p-4">
+              <SearchTrigger variant="menu" />
+              <div className="flex items-center gap-1">
+                <LocaleToggle />
+                <ThemeToggle />
+              </div>
+            </div>
+          )}
           {mobileNavContent}
         </aside>
       )}
@@ -197,10 +211,10 @@ export function Sidebar({
         (activeSection === "components" || activeSection === "blocks") && (
           <aside
             className={`
-            hidden md:block fixed top-18 left-4 z-50 w-64 rounded-lg border border-border bg-background shadow-xl overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none
+            hidden md:block fixed top-[calc(var(--shell-header-height)+1rem)] left-4 z-50 w-64 rounded-lg border border-border bg-background shadow-xl overflow-y-auto overflow-x-hidden transition-all duration-300 ease-in-out motion-reduce:transition-none
             ${open && collapsed ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"}
           `}
-            style={{ maxHeight: "calc(100vh - 6rem)" }}
+            style={{ maxHeight: "calc(100vh - var(--shell-header-height) - 2.5rem)" }}
           >
             {desktopNavContent}
           </aside>
@@ -210,7 +224,7 @@ export function Sidebar({
       {showDesktop && !collapsed && (
         <aside
           style={{ width }}
-          className="relative hidden md:block border-r border-border bg-background h-[calc(100vh-3.5rem)] overflow-y-auto overflow-x-hidden sticky top-14 shrink-0"
+          className="relative hidden md:block border-r border-border bg-background h-[calc(100vh-var(--shell-header-height))] overflow-y-auto overflow-x-hidden sticky top-(--shell-header-height) shrink-0"
         >
           {desktopNavContent}
           {/* Right-edge resize grip: reveals on hover, stays while dragging.

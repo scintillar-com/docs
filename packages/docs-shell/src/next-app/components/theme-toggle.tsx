@@ -17,18 +17,24 @@ const SHELL_THEME_PANEL = getShellThemePanel()
  */
 export function ThemeToggle({
   panel = SHELL_THEME_PANEL,
-}: { panel?: ResolvedThemePanelConfig | null } = {}) {
-  if (panel) return <ThemePanel config={panel} />
-  return <PlainThemeToggle />
+  className,
+}: {
+  panel?: ResolvedThemePanelConfig | null
+  /** Classes for the button, e.g. to size it in a site header. */
+  className?: string
+} = {}) {
+  if (panel) return <ThemePanel config={panel} className={className} />
+  return <PlainThemeToggle className={className} />
 }
 
-function PlainThemeToggle() {
+function PlainThemeToggle({ className }: { className?: string }) {
   const { setTheme, resolvedTheme } = useTheme()
 
   return (
     <Button
       variant="ghost"
       size="icon"
+      className={className}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       aria-label="Toggle theme"
     >

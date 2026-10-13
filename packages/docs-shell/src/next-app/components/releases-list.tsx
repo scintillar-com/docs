@@ -52,9 +52,9 @@ export function ReleasesList({
             const isLatest = Boolean(release.version && manifest?.latest === release.version)
             const isCurrent = Boolean(release.version && release.version === CURRENT_VERSION)
             return (
-              <section key={release.anchor} aria-labelledby={release.anchor} className="scroll-mt-20">
+              <section key={release.anchor} aria-labelledby={release.anchor} className="scroll-mt-[calc(var(--shell-header-height)+1.5rem)]">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border pb-3">
-                  <h2 id={release.anchor} className="scroll-mt-20 text-2xl font-semibold tracking-tight">
+                  <h2 id={release.anchor} className="scroll-mt-[calc(var(--shell-header-height)+1.5rem)] text-2xl font-semibold tracking-tight">
                     <a href={`#${release.anchor}`} className="hover:underline underline-offset-4">
                       {release.version ? `v${release.version}` : release.heading}
                     </a>
@@ -98,7 +98,7 @@ export function ReleasesList({
       {/* Right rail mirrors the docs TOC: jump to a release. */}
       <div className="hidden xl:block w-44 shrink-0">
         {releases.length > 1 && (
-          <nav aria-label={t("releases.jumpTo")} className="sticky top-20">
+          <nav aria-label={t("releases.jumpTo")} className="sticky top-[calc(var(--shell-header-height)+1.5rem)]">
             <p className="text-xs font-semibold text-foreground mb-2" aria-hidden="true">
               {t("releases.jumpTo")}
             </p>

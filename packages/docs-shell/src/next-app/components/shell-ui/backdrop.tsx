@@ -6,7 +6,7 @@ import { cn } from "@shell/lib/utils"
 function Backdrop({
   /** Additional CSS classes. */
   className,
-  /** Whether the backdrop starts below the header (top: 3.5rem). */
+  /** Whether the backdrop starts below the header (top: --shell-header-height). */
   belowHeader = false,
   ...props
 }: React.ComponentProps<"div"> & {
@@ -18,7 +18,7 @@ function Backdrop({
       data-slot="backdrop"
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 bg-black/40 dark:bg-black/60 transition-opacity duration-150 motion-reduce:transition-none",
-        belowHeader ? "top-14" : "top-0",
+        belowHeader ? "top-(--shell-header-height)" : "top-0",
         className
       )}
       {...props}

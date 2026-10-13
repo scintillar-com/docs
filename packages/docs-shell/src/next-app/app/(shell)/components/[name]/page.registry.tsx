@@ -38,7 +38,7 @@ export default async function ComponentPage({
     <div>
       {/* Component header — sticky on desktop, breadcrumb on mobile when scrolled */}
       <ComponentBreadcrumb name={comp.label}>
-        <div className="sticky top-14 z-20 bg-background border-b border-border max-md:static max-md:border-b-0">
+        <div className="sticky top-(--shell-header-height) z-20 bg-background border-b border-border max-md:static max-md:border-b-0">
           <div className="mx-auto px-4 md:px-8 py-4 max-md:py-3">
             <h1 className="text-2xl max-md:text-xl font-bold">{comp.label}</h1>
             <p className="text-sm text-muted-foreground max-md:hidden">
