@@ -20,12 +20,11 @@ import { SearchTrigger } from "@shell/components/search"
 import { VersionSwitcher } from "@shell/components/version-switcher"
 import { useMobileSidebar } from "@shell/components/sidebar-provider"
 import { useNavData } from "@shell/components/nav-data-provider"
-import { useActiveSection, type ActiveSection } from "@shell/hooks/use-active-section"
-import { TranslatedText } from "@shell/components/translated-text"
-import { firstDocSlug } from "@shell/lib/docs-tree"
+import { useHeaderSections } from "@shell/hooks/use-header-sections"
 import { GITHUB_URL, formatStarCount } from "@shell/lib/github"
 import { branding } from "@shell/lib/branding"
 import { withBasePath } from "@shell/lib/base-path"
+import { MOBILE_MENU_TOOLS } from "@shell/lib/mobile-menu"
 
 function HeaderTab({
   href,
@@ -39,7 +38,7 @@ function HeaderTab({
   return (
     <Link
       href={href}
-      className={`relative px-3 py-1.5 text-sm font-medium transition-colors ${
+      className={`relative flex h-full items-center px-3 text-sm font-medium transition-colors ${
         active
           ? "text-foreground"
           : "text-muted-foreground hover:text-foreground"
@@ -47,7 +46,7 @@ function HeaderTab({
     >
       {children}
       {active && (
-        <span className="absolute -bottom-3.25 left-0 right-0 h-0.5 bg-primary" />
+        <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-primary" />
       )}
     </Link>
   )
@@ -59,15 +58,8 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
   const { open: sidebarOpen, toggle, collapsed } = useMobileSidebar()
 
   const navData = useNavData()
-  const activeSection: ActiveSection = useActiveSection(navData?.components ?? [], navData?.sections ?? [])
-  // "Documentation" covers pages at the root of the docs folder (every page
-  // of a flat docs site); each docs section (top-level folder) gets its own
-  // tab, landing on the section's own page or its first page.
-  const firstRootSlug = firstDocSlug(navData?.trees[""] ?? [])
-  const sectionTabs = (navData?.sections ?? []).filter((s) => s.firstSlug)
-  const firstComponentName = navData?.components.find((c) => c.kind === "component")?.name
-  const firstBlockName = navData?.components.find((c) => c.kind === "block")?.name
-  const hasBlocks = Boolean(firstBlockName)
+  // One tab per top-level section (see useHeaderSections).
+  const sections = useHeaderSections()
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- standard hydration mount detection
   useEffect(() => setMounted(true), [])
@@ -79,7 +71,7 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
     : branding.faviconDark
 
   return (
-    <header className="h-14 border-b border-border sticky top-0 z-30 bg-background">
+    <header className="h-(--shell-header-height) border-b border-border sticky top-0 z-30 bg-background">
       {/* From md up, a 1fr | auto | 1fr grid keeps the tabs centred whatever the
           breadcrumb width, and the columns can't overlap when space runs out. */}
       <div className="flex items-center justify-between h-full px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-6">
@@ -131,30 +123,11 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
             aria-label="Sections"
             className="hidden md:flex items-center gap-1 h-full"
           >
-            {firstRootSlug && (
-              <HeaderTab href={`/docs/${firstRootSlug}`} active={activeSection === "docs"}>
-                <TranslatedText k="sidebar.documentation" />
-              </HeaderTab>
-            )}
-            {sectionTabs.map((section) => (
-              <HeaderTab
-                key={section.dir}
-                href={`/docs/${section.firstSlug}`}
-                active={activeSection === `docs:${section.dir}`}
-              >
+            {sections.map((section) => (
+              <HeaderTab key={section.key} href={section.href} active={section.active}>
                 {section.label}
               </HeaderTab>
             ))}
-            {firstComponentName && (
-              <HeaderTab href={`/components/${firstComponentName}`} active={activeSection === "components"}>
-                <TranslatedText k="sidebar.components" />
-              </HeaderTab>
-            )}
-            {hasBlocks && firstBlockName && (
-              <HeaderTab href={`/components/${firstBlockName}`} active={activeSection === "blocks"}>
-                <TranslatedText k="sidebar.blocks" />
-              </HeaderTab>
-            )}
           </nav>
         )}
 
@@ -197,11 +170,14 @@ export function Header({ githubStars }: { githubStars?: number | null } = {}) {
           )}
           {/* Renders only on sites built with `versions` (see VersionSwitcher). */}
           <VersionSwitcher />
-          <SearchTrigger />
           {/* Locale + theme switches always visible — small icons fit even on
-              mobile and avoid the indirection of a Settings modal. */}
-          <LocaleToggle />
-          <ThemeToggle />
+              mobile and avoid the indirection of a Settings modal — unless
+              `mobileMenu.tools` moves them into the mobile menu. */}
+          <div className={MOBILE_MENU_TOOLS ? "contents max-md:hidden" : "contents"}>
+            <SearchTrigger />
+            <LocaleToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>

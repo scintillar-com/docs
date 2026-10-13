@@ -1,0 +1,4 @@
+/* The site header is 4rem tall; the shell offsets everything below it. */
+:root {
+  --shell-header-height: 4rem;
+}

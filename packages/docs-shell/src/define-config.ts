@@ -434,6 +434,32 @@ export interface ShellConfig {
    * LifeBuoy, Lightbulb, Rocket, Scale, ShieldCheck, Terminal, Wrench.
    */
   sections?: Array<{ dir: string; label?: string; icon?: string }>
+
+  /**
+   * Optional. Site files that replace parts of the shell's chrome. Paths are
+   * relative to the config file.
+   *
+   * - `header`: a client component (`"use client"`, default export) rendered
+   *   in place of the shell's header. Build it from the pieces in
+   *   `@sntlr/docs-shell/shell/components/header-kit`. If it isn't 3.5rem
+   *   tall, set `--shell-header-height` in your `globalCss` so the sidebar,
+   *   table of contents and heading anchors clear it.
+   *
+   * Example: `components: { header: "./components/docs-header.tsx" }`.
+   */
+  components?: {
+    header?: string
+  }
+
+  /**
+   * Optional. The mobile menu (the card the header's menu button opens).
+   *
+   * - `tools`: show search, language and theme at the top of the menu, for
+   *   headers too narrow to hold them on a phone. Default `false`.
+   */
+  mobileMenu?: {
+    tools?: boolean
+  }
 }
 
 /**

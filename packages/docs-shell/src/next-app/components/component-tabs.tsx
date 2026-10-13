@@ -63,7 +63,7 @@ function useTocFromContent(containerRef: React.RefObject<HTMLDivElement | null>,
 
 function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <h3 id={id} className="text-lg font-semibold group relative scroll-mt-20">
+    <h3 id={id} className="text-lg font-semibold group relative scroll-mt-[calc(var(--shell-header-height)+1.5rem)]">
       {children}
       <a
         href={`#${id}`}
@@ -115,7 +115,7 @@ export function ComponentTabs({ name, source }: ComponentTabsProps) {
     <div className="flex justify-center gap-8">
       <div ref={contentRef} className="flex-1 min-w-0 xl:max-w-225">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="sticky top-14 md:top-14 z-10 bg-background border-b border-border pt-4 md:pt-8 -mx-1 px-1">
+          <div className="sticky top-(--shell-header-height) z-10 bg-background border-b border-border pt-4 md:pt-8 -mx-1 px-1">
             {/* Narrow screens can't fit every tab: scroll them sideways instead
                 of widening the page. pb-2/-mb-2 leave room for the active
                 underline (drawn below each trigger) without moving the border. */}
@@ -214,7 +214,7 @@ export function ComponentTabs({ name, source }: ComponentTabsProps) {
           switching tabs; inner nav only renders when there are headings. */}
       <div className="hidden xl:block w-44 shrink-0">
         {tocEntries.length > 0 && (
-          <nav aria-label={t("toc.title")} className="sticky top-16 pt-20">
+          <nav aria-label={t("toc.title")} className="sticky top-[calc(var(--shell-header-height)+0.5rem)] pt-20">
             <p className="text-xs font-semibold text-foreground mb-2" aria-hidden="true">
               {t("toc.title")}
             </p>

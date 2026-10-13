@@ -68,6 +68,8 @@ export default defineConfig({
   // },
 
   // themePanel: { since: "1.0.0" },   // optional, see "Theme panel"
+  // components: { header: "./components/docs-header.tsx" }, // optional, see "Custom header"
+  // mobileMenu: { tools: true },       // optional, see "Custom header"
   // categories: { Forms: ["input", "select"], Layout: ["card"] },
   // previewHeight: { "data-table": 640 }, // optional, see "Component pages"
 })
@@ -221,6 +223,88 @@ toggle (their theme predates the variables the panel sets). On an
 unversioned site, `since` has no effect and the panel is always on.
 With `versions` on, each snapshot is compared to `since`; the latest
 site always shows the panel.
+
+## Custom header
+
+To run the site under your own header, point `components.header` at a file
+in your project:
+
+```ts
+export default defineConfig({
+  branding: { /* ... */ },
+  components: { header: "./components/docs-header.tsx" },
+  mobileMenu: { tools: true }, // optional, see below
+})
+```
+
+The file is a client component with a default export. The shell renders it
+in place of its own header, on every page. Build it from the header kit, the
+one import that stays stable across minor releases (other `shell/*` paths
+are internal):
+
+```tsx
+"use client"
+
+import {
+  Link,
+  SearchTrigger,
+  ThemeToggle,
+  branding,
+  useHeaderSections,
+  useMobileSidebar,
+} from "@sntlr/docs-shell/shell/components/header-kit"
+
+export default function DocsHeader() {
+  const sections = useHeaderSections()
+  const { toggle } = useMobileSidebar()
+  return (
+    <header className="sticky top-0 z-30 h-(--shell-header-height) border-b bg-background">
+      <Link href="/">{branding.shortName}</Link>
+      {sections.map((s) => (
+        <Link key={s.key} href={s.href} aria-current={s.active ? "page" : undefined}>
+          {s.label}
+        </Link>
+      ))}
+      <SearchTrigger />
+      <ThemeToggle />
+      <button className="md:hidden" onClick={toggle} aria-label="Toggle menu">Menu</button>
+    </header>
+  )
+}
+```
+
+On Registry Shell, import from `@sntlr/registry-shell/shell/components/header-kit`.
+
+The kit has:
+
+- **Navigation**: `useHeaderSections()` (the top-level sections in header
+  order, each with its `label`, `href` and whether it's `active`),
+  `useNavData()`, `useActiveSection()`, and `useMobileSidebar()` to open the
+  mobile menu.
+- **Controls**: `SearchTrigger`, `LocaleToggle`, `ThemeToggle` (takes a
+  `className`; opens the theme panel when `themePanel` is on),
+  `VersionSwitcher`, `Button` and `Link`. `SearchTrigger` takes a `variant`:
+  `"header"` (default: a search bar from `lg` up, an icon below, and the
+  ⌘K / Ctrl+K shortcut) or `"menu"` (a full-width button without the
+  shortcut, so a page with both opens one dialog).
+- **The shell's `Header`**, to wrap rather than replace.
+- **Site settings and helpers**: `branding`, `withBasePath`, `useLocale`,
+  `useTranslations`, `MOBILE_MENU_TOOLS` and `cn`.
+
+**Header height.** The sidebar, floating menus, table of contents and
+heading anchors sit below the header, at `--shell-header-height` (default
+`3.5rem`). If yours is a different height, set it in your
+[custom CSS](#custom-css--theme-tokens), and size the header with it:
+
+```css
+:root { --shell-header-height: 4rem; }
+```
+
+**Mobile menu tools.** The menu button (`useMobileSidebar().toggle`) opens
+the shell's mobile menu. With `mobileMenu: { tools: true }`, the menu also
+carries search, language and theme above the navigation, for headers too
+narrow to hold them on a phone. The shell's own header then drops them
+below `md`.
 
 ## Docs-only sites
 

@@ -8,3 +8,10 @@ declare module "@user/previews" {
   import type { PreviewLoader } from "@shell/lib/registry-adapter"
   export const previewLoader: PreviewLoader
 }
+
+declare module "@user/header" {
+  import type { ComponentType } from "react"
+  /** The site's header (`components.header`), else the shell's. */
+  const SiteHeader: ComponentType<{ githubStars?: number | null }>
+  export default SiteHeader
+}

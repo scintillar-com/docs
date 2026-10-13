@@ -49,7 +49,7 @@ export default async function DocPage({
       {/* TOC column — space always reserved at xl+ to avoid layout shift when
           headings change; inner element hidden below xl since there's no room. */}
       <div className="hidden xl:block w-44 shrink-0">
-        <div className="sticky top-20">
+        <div className="sticky top-[calc(var(--shell-header-height)+1.5rem)]">
           <DocsToc />
         </div>
       </div>

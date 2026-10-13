@@ -7,6 +7,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@shell/components/shell-ui/breadcrumb"
+import { headerHeightPx } from "@shell/lib/header-height"
 
 export function ComponentBreadcrumb({
   name,
@@ -30,7 +31,7 @@ export function ComponentBreadcrumb({
       ([entry]) => {
         setScrolledPast(!entry.isIntersecting)
       },
-      { threshold: 0, rootMargin: "-56px 0px 0px 0px" }
+      { threshold: 0, rootMargin: `-${headerHeightPx()}px 0px 0px 0px` }
     )
     observer.observe(el)
     return () => observer.disconnect()

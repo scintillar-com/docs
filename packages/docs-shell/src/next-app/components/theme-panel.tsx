@@ -56,7 +56,14 @@ function readDefaults(): ThemeDefaults {
  * localStorage). Primary and tint are inline custom properties on `<html>`,
  * persisted and mirrored into the preview iframes; see lib/theme-overrides.
  */
-export function ThemePanel({ config }: { config: ResolvedThemePanelConfig }) {
+export function ThemePanel({
+  config,
+  className,
+}: {
+  config: ResolvedThemePanelConfig
+  /** Classes for the trigger button. */
+  className?: string
+}) {
   const t = useTranslations()
   const { theme, setTheme, resolvedTheme } = useTheme()
   const { controls } = config
@@ -330,7 +337,7 @@ export function ThemePanel({ config }: { config: ResolvedThemePanelConfig }) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={t("themePanel.trigger")}>
+        <Button variant="ghost" size="icon" className={className} aria-label={t("themePanel.trigger")}>
           <Sun className="size-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
           <Moon className="absolute size-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
         </Button>

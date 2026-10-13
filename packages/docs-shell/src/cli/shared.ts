@@ -208,6 +208,24 @@ export function resolveModules(loaded: LoadedConfig | null): ShellModule[] {
   return modules
 }
 
+/**
+ * Absolute path of the site's own header (`components.header`), or null
+ * when the site uses the shell's. Warns once per call when the file is
+ * missing, and falls back to the shell's header.
+ */
+export function resolveSiteHeader(loaded: LoadedConfig | null): string | null {
+  const rel = loaded?.config.components?.header
+  if (!loaded || !rel) return null
+  const abs = path.resolve(loaded.root, rel)
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
+    console.warn(
+      `[docs-shell] components.header points at ${abs} but the file doesn't exist — using the shell's header.`,
+    )
+    return null
+  }
+  return abs
+}
+
 export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
   const nextApp = nextAppDir()
   const appDir = path.join(nextApp, "app")
@@ -244,6 +262,9 @@ export function writeUserSourcesCss(loaded: LoadedConfig | null): void {
       `@source "${rel(resolve(paths.previews?.replace(/\/index\.[tj]sx?$/, ""), "components/previews"))}";`,
     )
   }
+  // A site header's utility classes aren't in any scanned folder.
+  const header = resolveSiteHeader(loaded)
+  if (header) sources.push(`@source "${rel(header)}";`)
   writeFileFresh(sourcesTarget, sources.join("\n") + "\n")
 
   // ── _user-global.css — user's extra theme/tokens ──────────────────
@@ -380,6 +401,11 @@ export function buildEnvVars(
   if (config.themePanel) {
     env.NEXT_PUBLIC_SHELL_THEME_PANEL = JSON.stringify(config.themePanel)
   }
+
+  // Site header: next.config.ts points the `@user/header` alias at it.
+  const header = resolveSiteHeader(loaded)
+  if (header) env.USER_HEADER_PATH = header
+  if (config.mobileMenu?.tools) env.NEXT_PUBLIC_SHELL_MOBILE_TOOLS = "1"
 
   // Multilocale signalling for the locale toggle. Resolves the toggle's
   // locale set from explicit config or auto-scan of doc subfolders so the

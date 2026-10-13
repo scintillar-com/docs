@@ -52,7 +52,7 @@ export function ResizablePreview({
   // The iframe drives the fullscreen toggle (button lives inside
   // PreviewCanvas, which renders inside the iframe). We listen for its
   // postMessage and size the iframe wrapper to cover the shell viewport
-  // (minus the 3.5rem header) so the iframe element itself appears
+  // (minus the header) so the iframe element itself appears
   // fullscreen rather than the iframe's *contents* trying to fullscreen
   // within their bounded box.
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -193,7 +193,7 @@ export function ResizablePreview({
   return (
     <div data-resize-dragging={isDragging || undefined}>
       {/* Iframe wrapper. In fullscreen, escapes document flow and covers
-          the shell viewport below the 3.5rem header. The iframe's own
+          the shell viewport below the header. The iframe's own
           internal layout (toolbar + mobile props panel at bottom) keeps
           rendering normally — it just has the whole screen now. */}
       <div
@@ -201,7 +201,7 @@ export function ResizablePreview({
         data-testid="preview-frame"
         className={
           isFullscreen
-            ? "fixed left-0 right-0 top-14 bottom-0 z-40"
+            ? "fixed left-0 right-0 top-(--shell-header-height) bottom-0 z-40"
             : explicitHeight === null
               ? `relative ${DEFAULT_HEIGHT_CLASS}`
               : "relative"
